@@ -35,6 +35,7 @@ except ImportError:
 
 ALLOWED_HOSTS = []
 
+AUTH_USER_MODEL = "user_app.User"
 
 # Application definition
 
@@ -46,7 +47,9 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "localflavor",
     "user_app",
+    'anbieter',
 ]
 
 MIDDLEWARE = [
@@ -82,20 +85,15 @@ WSGI_APPLICATION = "RoWoOekostromDB.wsgi.application"
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases
-
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+try:
+    from .local import DATABASES
+except ImportError:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
     }
-}
-
-
-AUTH_PREFIX = "django.contrib.auth.password_validation."
-AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": AUTH_PREFIX + "UserAttributeSimilarityValidator",},
-    # include other password validators here
-]
 
 
 # Password validation
