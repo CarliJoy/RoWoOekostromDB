@@ -1,0 +1,3 @@
+[submodule "oekostromreport-data"]
+	path = oekostromreport-data
+	url = https://github.com/Datenschule/oekostromreport-data.git
