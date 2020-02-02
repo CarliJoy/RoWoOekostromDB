@@ -8,10 +8,19 @@ https://docs.djangoproject.com/en/3.0/topics/settings/
 
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
-"""
 
+To dont fill the git with secrets or machine depended settings, there is
+a `local.py` file that contains local settings and secret.
+The following values can be defined there:
+ * SECRET_KEY
+ * DEBUG
+ * DATABASES
+ * ROWO_PROVIDER_EXCEL_URL
+"""
 import logging
 import os
+
+from .functions import generate_secret_key_and_write_to_local_py
 
 logger = logging.Logger("RoWoOekostromDB.settings")
 
@@ -26,7 +35,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 try:
     from .local import SECRET_KEY
 except ImportError:
-    logger.warning("Could not import SECRET_KEY from local.py file!")
+    logger.warning("Could not import SECRET_KEY from local.py file, adding it to it!")
+    generate_secret_key_and_write_to_local_py()
+    try:
+        from .local import SECRET_KEY
+    except ImportError:
+        raise EnvironmentError("Tried to write and import local.py, which failed.")
+    else:
+        logger.info("Generated new secret key and saved it to local.py")
 
 try:
     from .local import DEBUG
@@ -136,3 +152,9 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/3.0/howto/static-files/
 
 STATIC_URL = "/static/"
+
+try:
+    from .local import ROWO_PROVIDER_EXCEL_URL
+except ImportError:
+    # Don't do anything if not found as not needed
+    pass
