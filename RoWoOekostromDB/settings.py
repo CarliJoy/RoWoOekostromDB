@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "localflavor",
+    "django_extensions",
     "user_app",
     "anbieter",
 ]

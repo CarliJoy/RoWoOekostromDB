@@ -1,9 +1,12 @@
 from logging import getLogger
+from typing import Dict, Union
 
 from django.core import validators
 from django.db import models
 from polymorphic.models import PolymorphicModel
+from requests.structures import CaseInsensitiveDict
 
+from anbieter.exceptions import ConversationError
 from helpers.model_fields import PostleitzahlField
 
 EE_ANTEIL_RANGE_MSG = "Der EEG Anteil kann nur zwischen 0% und 100% liegen."
@@ -23,6 +26,26 @@ class Zertifizierung(models.Model):
 
 
 class HomepageKriterium(models.Model):
+    FIELD_NAME_MAPPING = {
+        "ID": "id",
+        "Kategorie": "kategorie",
+        "Teaser": "teaser",
+        "Text": "text",
+        "Link": "link",
+        "Linktitel": "linktitel",
+        "Methoden": "methoden",
+        "Methodenlink": "methoden_link",
+        "Profil": "profil",
+        "Strommix": "strommix",
+        "Empfehlung": "empfehlung",
+    }
+
+    FIELD_CONTENT_MAPPER = {
+        "Profil": CaseInsensitiveDict({"true": True, "false": False, "": None}),
+        "Strommix": CaseInsensitiveDict({"true": True, "false": False, "": None}),
+        "Empfehlung": CaseInsensitiveDict({"yes": "Y", "maybe": "M", "no": "N"}),
+    }
+
     id = models.CharField(
         "ID",
         validators=[
@@ -47,6 +70,35 @@ class HomepageKriterium(models.Model):
     empfehlung = models.CharField(
         "Empfehlung", max_length=1, choices=(("Y", "yes"), ("N", "no"), ("M", "maybe"))
     )
+
+    @classmethod
+    def csv_data_to_obj_data(cls, data: Dict[str, str]) -> Dict[str, Union[str, bool]]:
+        """
+        Convert CSV Data to obj data that can be used to create or update
+        an object
+        :param data: the csv data
+        :return: converted dictionary ready to be read in object
+        :exception ConversationError - if failed to convert
+        """
+        result: Dict[str, Union[str, bool]] = {}
+        for csv_field, csv_val in data.items():
+            key = csv_field
+            val = csv_val
+            val_mapper = cls.FIELD_CONTENT_MAPPER.get(key, None)
+            if val_mapper is not None:
+                try:
+                    val = val_mapper[val]
+                except KeyError as e:
+                    raise ConversationError(
+                        f"Could not convert '{val}' for field {key} "
+                        f"- seems to invalid. Only {val_mapper.keys()} "
+                        f"are valid values."
+                    )
+            try:
+                result[cls.FIELD_NAME_MAPPING[key]] = val
+            except KeyError:
+                raise ConversationError(f"Could not corresponding field for" f" '{key}'")
+        return result
 
     def __str__(self):
         return self.id

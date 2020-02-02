@@ -1,0 +1,2 @@
+class ConversationError(ValueError):
+    pass
