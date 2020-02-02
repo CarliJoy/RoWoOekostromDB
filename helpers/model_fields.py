@@ -1,7 +1,7 @@
 import django.db.models as models
-from localflavor.de.forms import DEZipCodeField
 from django.core import validators
 from django.utils.translation import gettext as _
+from localflavor.de.forms import DEZipCodeField
 
 PLZ_LENGTH = 5  # length of a German postal code
 

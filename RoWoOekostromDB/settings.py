@@ -10,8 +10,8 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/3.0/ref/settings/
 """
 
-import os
 import logging
+import os
 
 logger = logging.Logger("RoWoOekostromDB.settings")
 
@@ -49,7 +49,7 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "localflavor",
     "user_app",
-    'anbieter',
+    "anbieter",
 ]
 
 MIDDLEWARE = [

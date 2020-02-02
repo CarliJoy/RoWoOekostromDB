@@ -1,4 +1,5 @@
 from logging import getLogger
+
 from django.core import validators
 from django.db import models
 from polymorphic.models import PolymorphicModel
@@ -25,9 +26,7 @@ class HomepageKriterium(models.Model):
     id = models.CharField(
         "ID",
         validators=[
-            validators.RegexValidator(
-                "[a-z][A-Z]*", "Nur Buchstaben sind als ID erlaubt"
-            )
+            validators.RegexValidator("[a-z][A-Z]*", "Nur Buchstaben sind als ID erlaubt")
         ],
         max_length=16,
         primary_key=True,
@@ -97,22 +96,23 @@ class Anbieter(PolymorphicModel):
     homepage = models.URLField("Homepage")
     kennzeichnung_link = models.URLField()
     fragebogen = models.CharField(
-        choices=((val, val) for val in ["", "x", "(x)", "k.A."]),
-        max_length=5
+        choices=((val, val) for val in ["", "x", "(x)", "k.A."]), max_length=5
     )
     rowo_kriterium = models.CharField(
-        "RoWo Kriterium", choices=((val, val) for val in ["", "x", "(x)", "k.A."]),
+        "RoWo Kriterium",
+        choices=((val, val) for val in ["", "x", "(x)", "k.A."]),
         max_length=5,
     )
     homepage_kriterium = models.ForeignKey(
-        HomepageKriterium, verbose_name="Kriterium-Websuche",
-        on_delete=models.PROTECT,
+        HomepageKriterium, verbose_name="Kriterium-Websuche", on_delete=models.PROTECT,
     )
     begruendung = models.TextField("Begründung", blank=True)
     anlagen = models.BooleanField("Eigene Anlagen", default=False, blank=True)
     zertifizierung = models.ManyToManyField(
-        Zertifizierung, verbose_name="Zertifizierung(en)", blank=True,
-        db_table="anbieter_zertifizierungen"
+        Zertifizierung,
+        verbose_name="Zertifizierung(en)",
+        blank=True,
+        db_table="anbieter_zertifizierungen",
     )
     bemerkung = models.TextField("Bemerkung", blank=True)
     gruener_strom = models.BooleanField("Grüner Strom Label", blank=True)
