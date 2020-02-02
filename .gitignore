@@ -1,2 +1,3 @@
 RoWoOekostromDB/local.py
 db.sqlite3
+*/__pycache__/*
