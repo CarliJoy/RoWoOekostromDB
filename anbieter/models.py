@@ -156,7 +156,7 @@ class Anbieter(PolymorphicModel):
             "C": None,
             "D": None,
             "Begründung": "begruendung",
-            "Eigene Anlagen/Anteile an Anlagen": "eigene_anlagen",
+            "Eigene Anlagen/Anteile an Anlagen": "anlagen",
             "Zertifizierung": "zertifizierung",  # Many to many needs special handling
             "Bemerkung": "bemerkung",
             "Grüner Strom": "gruener_strom",
@@ -170,7 +170,7 @@ class Anbieter(PolymorphicModel):
         "telefon": conv_phone_str,
         "homepage_kriterium": HomepageKriterium.get_for_excel_table,
         "email": conv_none_to_empty_str,
-        "eigene_anlagen": conv_bool,
+        "anlagen": conv_bool,
         "ok_power": conv_bool,
         "begruendung": conv_none_to_empty_str,
         "kennzeichnung_link": conv_none_to_empty_str,
@@ -291,13 +291,10 @@ class Anbieter(PolymorphicModel):
     email = models.EmailField(
         "Kontakt", blank=True, help_text="Nur für relevante Anbieter benötigt"
     )
-    eigene_anlagen = models.BooleanField("Eigene Anlagen (oder Anteile)", blank=True)
-    eigene_anlagen_kommentar = models.TextField(
-        "Weitere Informationen über Anlagen", blank=True
-    )
     telefon = PhoneNumberField("Telefon", blank=True)
     begruendung = models.TextField("Begründung", blank=True)
     anlagen = models.BooleanField("Eigene Anlagen", default=False, blank=True)
+    anlagen_kommentar = models.TextField("Weitere Informationen über Anlagen", blank=True)
     zertifizierung = models.ManyToManyField(
         Zertifizierung,
         verbose_name="Zertifizierung(en)",
@@ -352,9 +349,9 @@ class Anbieter(PolymorphicModel):
                 result[target_key] = csv_val
             else:
                 result[target_key] = convert_func(csv_val)
-            if target_key == "eigene_anlagen" and result[target_key]:
+            if target_key == "anlagen" and result[target_key]:
                 if str(csv_val).lower().strip() != "x":
-                    result["eigene_anlagen_kommentar"] = csv_val
+                    result["anlagen_kommentar"] = csv_val
         return result
 
     def save(self, *args, **kwargs):
