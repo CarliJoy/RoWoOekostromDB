@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "localflavor",
+    "phonenumber_field",
     "django_extensions",
     "user_app",
     "anbieter",
@@ -99,6 +100,7 @@ TEMPLATES = [
 
 WSGI_APPLICATION = "RoWoOekostromDB.wsgi.application"
 
+PHONENUMBER_DEFAULT_REGION = "DE"
 
 # Database
 # https://docs.djangoproject.com/en/3.0/ref/settings/#databases

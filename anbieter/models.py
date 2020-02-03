@@ -3,6 +3,7 @@ from typing import Dict, Union
 
 from django.core import validators
 from django.db import models
+from phonenumber_field.modelfields import PhoneNumberField
 from polymorphic.models import PolymorphicModel
 from requests.structures import CaseInsensitiveDict
 
@@ -108,6 +109,35 @@ class HomepageKriterium(models.Model):
 
 
 class Anbieter(PolymorphicModel):
+    FIELD_NAME_MAPPING = CaseInsensitiveDict(
+        {
+            "Firmenname": "name",
+            "Erneuerbare Energien 2": "ee_anteil",
+            "KategorieÜberarbeitung": None,  # set automatically
+            "Kennzeichnung Link": "kennzeichnung_link",
+            "Adresse": "strasse",
+            "PLZ": "plz",
+            "Stadt": "stadt",
+            "URL": "homepage",
+            "Kontakt (nur für relevante Anbieter)": None,
+            "Telefon": "telefon",
+            "Fragebogen": "fragebogen",
+            "RoWo-Kriterien": "rowo_kriterium",
+            "Kriterium-Websuche": "homepage_kriterium",
+            "A": None,
+            "B": None,
+            "C": None,
+            "D": None,
+            "Begründung": "begruendung",
+            "Eigene Anlagen/Anteile an Anlagen": "eigene_anlagen",
+            "Zertifizierung": "zertifizierung",
+            "Bemerkung": "bemerkung",
+            "Grüner Strom": "gruener_strom",
+            "OK Power": "ok_power",
+            "RoWo-Anbieterprofil": "rowo_profil",
+        }
+    )
+
     MAX_EE_KATEGORIE = 101
     EE_KATEGORIEN = (
         (1, "Kategorie 1, 0% - 0.99%"),
@@ -141,23 +171,77 @@ class Anbieter(PolymorphicModel):
         choices=EE_KATEGORIEN, editable=False, null=True,
     )
     strasse = models.CharField(
-        "Straße", max_length=128, help_text="Straßenname mit Hausnummer"
+        "Straße", max_length=128, help_text="Straßenname mit Hausnummer", blank=True
     )
-    plz = PostleitzahlField("PLZ")
-    stadt = models.CharField("Stadt", max_length=128)
-    homepage = models.URLField("Homepage")
-    kennzeichnung_link = models.URLField()
+    plz = PostleitzahlField("PLZ", blank=True)
+    stadt = models.CharField("Stadt", max_length=128, blank=True)
+    homepage = models.URLField("Homepage", blank=True)
+    kennzeichnung_link = models.URLField("Link der Kennzeichnung", blank=True)
     fragebogen = models.CharField(
         choices=((val, val) for val in ["", "x", "(x)", "k.A."]), max_length=5
     )
     rowo_kriterium = models.CharField(
         "RoWo Kriterium",
-        choices=((val, val) for val in ["", "x", "(x)", "k.A."]),
-        max_length=5,
+        choices=(
+            (
+                "X",
+                "X - Überregionale Anbieter mit 100% Ökostrom, Beiträgen zu "
+                "Förderung der Energiewende und ohne erkennbare Verflechtungen mit "
+                "Unternehmen die mit Kohle oder Atomstrom handeln oder "
+                "entsprechende Kraftwerke besitzen",
+            ),
+            (
+                "XX",
+                "XX - Alternative Anbieter mit eher Vermittelnder / Beratender "
+                "Funktion (z.B. regionale Direktvermarktung aus kleinstanlagen, "
+                "Mietstromangebote, u.ä.), mit 100% Ökostrom",
+            ),
+            ("R", "R - Regionale Anbieter die den X oder XX Kriterien entsprechen"),
+            (
+                "RC",
+                "RC - Regionale Anbieter die keinen erkennbare, "
+                "zusätzlichen Beitrag zur Energiewende leisten",
+            ),
+            (
+                "D",
+                "D - Betreiber von Anlagen aus denen Strom Bezogen produzieren "
+                "oder verkaufen Strom aus Kohl-Atomenergie",
+            ),
+            (
+                "C",
+                "C - Große, überregionale Anbieter die keinen erkennbare "
+                "(auch keine eigenen EE Anlagen) zusätzlichen Beitrag zur "
+                "Energiewende leisten",
+            ),
+            (
+                "B",
+                "B - Eigentumsrechtliche Verflechtungen oder oder Verkauf von "
+                "nicht regenerativen Energien eines, "
+                "am Anbieter, beteiligten Unternehmens (Grund in Spalte "
+                "Begründung angegeben)",
+            ),
+            ("A", "A - keine 100% Ökostrom"),
+            (
+                "0",
+                "0 - Sonstiger Stromanbieter mit Ökostromtarif (Keine Bewertung"
+                " über die ROBIN WOOD Kriterien da es sich um keinen klassischen"
+                " Stromanbieter / Stromkenneichung fehlt / Informationen fehlen "
+                "(z.B. keine Internetpräsenz) oder sonstige Gründe",
+            ),
+        ),
+        max_length=3,
     )
     homepage_kriterium = models.ForeignKey(
         HomepageKriterium, verbose_name="Kriterium-Websuche", on_delete=models.PROTECT,
     )
+    email = models.EmailField(
+        "Kontakt", blank=True, help_text="Nur für relevante Anbieter benötigt"
+    )
+    eigene_anlagen = models.BooleanField("Eigene Anlagen (oder Anteile)", blank=True)
+    eigene_anlagen_kommentar = models.TextField(
+        "Weitere Informationen über Anlagen", blank=True
+    )
+    telefon = PhoneNumberField("Telefon", blank=True)
     begruendung = models.TextField("Begründung", blank=True)
     anlagen = models.BooleanField("Eigene Anlagen", default=False, blank=True)
     zertifizierung = models.ManyToManyField(
@@ -174,22 +258,25 @@ class Anbieter(PolymorphicModel):
     def __str__(self):
         return self.name
 
+    def _select_correct_category(self) -> None:
+        """
+        Selects the correct ee_kategorie if given, will be called by save
+        automatically
+        """
+        if self.ee_anteil is None:
+            self.ee_kategorie = None
+        for max_percent, name in self.EE_KATEGORIEN:
+            if self.ee_anteil < max_percent:
+                self.ee_kategorie = max_percent
+                break
+        else:
+            logger.warning(f"Invalid percentage value {self.ee_anteil} for {self}")
+
     def save(self, *args, **kwargs):
         """
         Make save object make sure the correct category is selected
         """
-
-        def select_correct_category():
-            if self.ee_anteil is None:
-                self.ee_kategorie = None
-            for max_percent, name in self.EE_KATEGORIEN:
-                if self.ee_anteil < max_percent:
-                    self.ee_kategorie = max_percent
-                    break
-            else:
-                logger.warning(f"Invalid percentage value {self.ee_anteil} for {self}")
-
-        select_correct_category()
+        self._select_correct_category()
         super().save(*args, **kwargs)
 
     class Meta:
