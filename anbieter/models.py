@@ -1,5 +1,6 @@
+import unicodedata
 from logging import getLogger
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 
 from django.core import validators
 from django.db import models
@@ -7,6 +8,14 @@ from phonenumber_field.modelfields import PhoneNumberField
 from polymorphic.models import PolymorphicModel
 from requests.structures import CaseInsensitiveDict
 
+from anbieter.conv_helpers import (
+    conv_bool,
+    conv_plz_number,
+    conv_phone_str,
+    conv_ee_anteil,
+    conv_zertifikate_string,
+    conv_none_to_empty_str,
+)
 from anbieter.exceptions import ConversationError
 from helpers.model_fields import PostleitzahlField
 
@@ -101,6 +110,24 @@ class HomepageKriterium(models.Model):
                 raise ConversationError(f"Could not corresponding field for" f" '{key}'")
         return result
 
+    @classmethod
+    def get_for_excel_table(cls, id: Optional[str]):
+        def strip_accents(s):
+            return "".join(
+                c
+                for c in unicodedata.normalize("NFD", str(s))
+                if unicodedata.category(c) != "Mn"
+            )
+
+        if id is None:
+            return None
+        else:
+            try:
+                cls.objects.get(id__iexact=strip_accents(id))
+            except cls.DoesNotExist:
+                logger.error(f"Did not find HomepageKriterium '{id}'")
+                return None
+
     def __str__(self):
         return self.id
 
@@ -119,7 +146,7 @@ class Anbieter(PolymorphicModel):
             "PLZ": "plz",
             "Stadt": "stadt",
             "URL": "homepage",
-            "Kontakt (nur für relevante Anbieter)": None,
+            "Kontakt (nur für relevante Anbieter)": "email",
             "Telefon": "telefon",
             "Fragebogen": "fragebogen",
             "RoWo-Kriterien": "rowo_kriterium",
@@ -130,13 +157,34 @@ class Anbieter(PolymorphicModel):
             "D": None,
             "Begründung": "begruendung",
             "Eigene Anlagen/Anteile an Anlagen": "eigene_anlagen",
-            "Zertifizierung": "zertifizierung",
+            "Zertifizierung": "zertifizierung",  # Many to many needs special handling
             "Bemerkung": "bemerkung",
             "Grüner Strom": "gruener_strom",
             "OK Power": "ok_power",
             "RoWo-Anbieterprofil": "rowo_profil",
         }
     )
+    FIELD_FUNCTION_MAPPING = {
+        "fragebogen": lambda x: str(x).replace("None", ""),
+        "bemerkung": conv_none_to_empty_str,
+        "telefon": conv_phone_str,
+        "homepage_kriterium": HomepageKriterium.get_for_excel_table,
+        "email": conv_none_to_empty_str,
+        "eigene_anlagen": conv_bool,
+        "ok_power": conv_bool,
+        "begruendung": conv_none_to_empty_str,
+        "kennzeichnung_link": conv_none_to_empty_str,
+        "rowo_kriterium": None,
+        "ee_anteil": conv_ee_anteil,
+        "name": None,
+        "zertifizierung": conv_zertifikate_string,
+        "gruener_strom": conv_bool,
+        "rowo_profil": conv_none_to_empty_str,
+        "strasse": conv_none_to_empty_str,
+        "homepage": conv_none_to_empty_str,
+        "plz": conv_plz_number,
+        "stadt": conv_none_to_empty_str,
+    }
 
     MAX_EE_KATEGORIE = 101
     EE_KATEGORIEN = (
@@ -173,7 +221,7 @@ class Anbieter(PolymorphicModel):
     strasse = models.CharField(
         "Straße", max_length=128, help_text="Straßenname mit Hausnummer", blank=True
     )
-    plz = PostleitzahlField("PLZ", blank=True)
+    plz = PostleitzahlField("PLZ", blank=True, max_length=16)
     stadt = models.CharField("Stadt", max_length=128, blank=True)
     homepage = models.URLField("Homepage", blank=True)
     kennzeichnung_link = models.URLField("Link der Kennzeichnung", blank=True)
@@ -228,11 +276,17 @@ class Anbieter(PolymorphicModel):
                 " Stromanbieter / Stromkenneichung fehlt / Informationen fehlen "
                 "(z.B. keine Internetpräsenz) oder sonstige Gründe",
             ),
+            ("", "? - noch nicht geprüft"),
         ),
+        default="",
         max_length=3,
     )
     homepage_kriterium = models.ForeignKey(
-        HomepageKriterium, verbose_name="Kriterium-Websuche", on_delete=models.PROTECT,
+        HomepageKriterium,
+        verbose_name="Kriterium-Websuche",
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True,
     )
     email = models.EmailField(
         "Kontakt", blank=True, help_text="Nur für relevante Anbieter benötigt"
@@ -265,12 +319,43 @@ class Anbieter(PolymorphicModel):
         """
         if self.ee_anteil is None:
             self.ee_kategorie = None
-        for max_percent, name in self.EE_KATEGORIEN:
-            if self.ee_anteil < max_percent:
-                self.ee_kategorie = max_percent
-                break
         else:
-            logger.warning(f"Invalid percentage value {self.ee_anteil} for {self}")
+            for max_percent, name in self.EE_KATEGORIEN:
+                if self.ee_anteil < max_percent:
+                    self.ee_kategorie = max_percent
+                    break
+            else:
+                logger.warning(f"Invalid percentage value {self.ee_anteil} for {self}")
+
+    @classmethod
+    def csv_data_to_obj_data(
+        cls, data: Dict[str, str]
+    ) -> Dict[str, Union[str, bool, float]]:
+        """
+        Convert CSV Data to obj data that can be used to create or update
+        an object
+        :param data: the csv data
+        :return: converted dictionary ready to be read in object
+        :exception ConversationError - if failed to convert
+        """
+        result: Dict[str, Union[str, bool]] = {}
+        for csv_field, csv_val in data.items():
+            key = csv_field
+            try:
+                target_key = cls.FIELD_NAME_MAPPING[key]
+            except KeyError:
+                raise ConversationError(f"Could not corresponding field for" f" '{key}'")
+            if target_key is None:
+                continue
+            convert_func = cls.FIELD_FUNCTION_MAPPING.get(target_key, None)
+            if convert_func is None:
+                result[target_key] = csv_val
+            else:
+                result[target_key] = convert_func(csv_val)
+            if target_key == "eigene_anlagen" and result[target_key]:
+                if str(csv_val).lower().strip() != "x":
+                    result["eigene_anlagen_kommentar"] = csv_val
+        return result
 
     def save(self, *args, **kwargs):
         """

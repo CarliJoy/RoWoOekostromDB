@@ -1,4 +1,4 @@
-from typing import Optional, Union
+from typing import Optional, Union, List
 
 ZERTIFIKAT_MAPPING = {
     "asew": "ASEW",
@@ -44,10 +44,10 @@ ZERTIFIKATE = list(
 )
 
 
-def conv_phone_str(input_str: Optional[str]) -> Optional[str]:
+def conv_phone_str(input_str: Optional[str]) -> str:
     SPECIAL1 = "Stromio Kundenservice (Festnetz) 0800 58 58 224 (mobil) 0211 777 957 10"
     if input_str is None or len(str(input_str).strip()) == 0:
-        return None
+        return ""
     elif input_str[0] in ("0", "+"):
         # Seems to be valid
         return input_str
@@ -75,6 +75,12 @@ def conv_zertifikat_string(input_str: Optional[str]) -> Optional[str]:
     return ZERTIFIKAT_MAPPING[conv_str]
 
 
+def conv_zertifikate_string(input_str: Optional[str]) -> List[Optional[str]]:
+    if input_str is None:
+        return [None]
+    return [conv_zertifikat_string(string) for string in input_str.split(",")]
+
+
 def conv_ee_anteil(input_value: Optional[Union[str, float, int]]) -> Optional[float]:
     """
     Converts the number of the percentage column to the correct percentage if
@@ -97,3 +103,32 @@ def conv_ee_anteil(input_value: Optional[Union[str, float, int]]) -> Optional[fl
         return 100
     else:
         return number * 100
+
+
+def conv_plz_number(input_value: Optional[Union[str, float, int]]) -> str:
+    if input_value is None:
+        return ""
+    if isinstance(input_value, str):
+        return input_value
+    return f"{input_value:05}"
+
+
+def conv_bool(input_value: Optional[Union[str, int, bool]]) -> bool:
+    """
+    Convert anything that is not explicit false (like empty, 0 or false)
+    """
+    if input_value is None:
+        return False
+    elif input_value is False or str(input_value).lower() in ("false", "", "no"):
+        return False
+    elif input_value == 0:
+        return False
+    else:
+        return True
+
+
+def conv_none_to_empty_str(input_value: Optional[str]) -> str:
+    if input_value is None:
+        return ""
+    else:
+        return input_value

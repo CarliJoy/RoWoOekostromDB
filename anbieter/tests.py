@@ -1,6 +1,11 @@
 from django.test import TestCase
 
-from anbieter.conv_helpers import conv_ee_anteil, conv_zertifikat_string
+from anbieter.conv_helpers import (
+    conv_ee_anteil,
+    conv_zertifikat_string,
+    conv_plz_number,
+    conv_bool,
+)
 from anbieter.models import Anbieter, HomepageKriterium
 
 
@@ -71,3 +76,18 @@ class TestConverstations(TestCase):
 
         for test_case in none_test_cases:
             self.assertIsNone(conv_zertifikat_string(test_case))
+
+    def test_conv_plz(self):
+        self.assertEqual(len(conv_plz_number(3)), 5)
+        self.assertEqual(len(conv_plz_number(12345)), 5)
+        self.assertEqual(len(conv_plz_number(123456)), 6)
+        self.assertEqual(conv_plz_number("CH 124567"), "CH 124567")
+
+    def test_conv_bool(self):
+        self.assertTrue(conv_bool("True"))
+        self.assertTrue(conv_bool(1))
+        self.assertTrue(conv_bool("yes"))
+        self.assertFalse(conv_bool(""))
+        self.assertFalse(conv_bool(None))
+        self.assertFalse(conv_bool("False"))
+        self.assertFalse(conv_bool("no"))

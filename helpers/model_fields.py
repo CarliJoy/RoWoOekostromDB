@@ -12,12 +12,12 @@ class PostleitzahlField(models.CharField):
     """
 
     def __init__(self, *args, **kwargs):
-        if kwargs.get("max_length", PLZ_LENGTH) != PLZ_LENGTH:
+        if kwargs.get("max_length", PLZ_LENGTH) < PLZ_LENGTH:
             raise ValueError(
-                f"Length for a german postal code needs to be fixed to"
+                f"Length for a german postal code needs to be at least "
                 f"{PLZ_LENGTH} characters!"
             )
-        kwargs["max_length"] = 5
+        kwargs.setdefault("max_length", 5)
         super().__init__(*args, **kwargs)
         self.validators.append(
             validators.RegexValidator(
