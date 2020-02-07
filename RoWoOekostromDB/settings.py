@@ -160,3 +160,38 @@ try:
 except ImportError:
     # Don't do anything if not found as not needed
     pass
+
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {name} {module} {process:d} {thread:d} {message}",
+            "style": "{",
+        },
+        "simple": {
+            "format": "{asctime} - {name} - {levelname}: {message}",
+            "style": "{",
+        },
+        "basic": {"format": "{asctime} {levelname}: {message}", "style": "{",},
+    },
+    "handlers": {
+        "console_info": {
+            "class": "logging.StreamHandler",
+            "level": "INFO",
+            "formatter": "simple",
+        },
+        "console_basic_info": {
+            "class": "logging.StreamHandler",
+            "level": "INFO",
+            "formatter": "basic",
+        },
+    },
+    "loggers": {
+        "anbieter.script": {
+            "handlers": ["console_basic_info"],
+            "propagate": True,
+            "level": "INFO",
+        }
+    },
+}
