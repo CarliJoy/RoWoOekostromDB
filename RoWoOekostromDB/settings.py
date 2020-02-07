@@ -188,7 +188,7 @@ LOGGING = {
         },
     },
     "loggers": {
-        "anbieter.script": {
+        "anbieter.scripts": {
             "handlers": ["console_basic_info"],
             "propagate": True,
             "level": "INFO",

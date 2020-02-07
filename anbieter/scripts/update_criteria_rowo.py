@@ -10,7 +10,7 @@ from anbieter.models import HomepageKriterium
 from anbieter.settings import ROWO_CRITERIA_URL
 
 DEFAULT_LOCAL_CSV_PATH = Path(settings.BASE_DIR) / "downloads" / "homepagekrit.csv"
-logger = getLogger("anbieter.script.update_criteria_rowo")
+logger = getLogger("anbieter.scripts.update_criteria_rowo")
 
 
 def get_rowo_homepage_kriterium_online() -> List[str]:
@@ -22,10 +22,10 @@ def get_rowo_homepage_kriterium_online() -> List[str]:
 
 def get_rowo_home_kriterium_file(filepath: Path = DEFAULT_LOCAL_CSV_PATH):
     if filepath.exists():
-        logger.info("Using cached version")
+        logger.info("Using cached Homepage Kriterium version")
         return filepath.read_text("UTF8").splitlines()
     else:
-        logger.info("Cache is empty.")
+        logger.info("Cache for Homepage Kriterium is empty.")
         return get_rowo_homepage_kriterium_online()
 
 

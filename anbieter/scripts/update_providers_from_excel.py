@@ -1,8 +1,10 @@
+from logging import getLogger
+from pathlib import Path
 from pprint import pprint
-from tempfile import NamedTemporaryFile
 from typing import List, Dict
 
 import requests
+from django.conf import settings
 from django.db import IntegrityError
 from openpyxl import load_workbook
 
@@ -13,6 +15,9 @@ from anbieter.scripts import update_criteria_rowo
 from anbieter.settings import ROWO_PROVIDER_EXCEL_URL
 from anbieter.typing import XLSX_ROW
 
+DEFAULT_LOCAL_XLSX_PATH = Path(settings.BASE_DIR) / "downloads" / "anbieter.xlsx"
+logger = getLogger("anbieter.scripts.update_providers_from_excel")
+
 
 def create_or_get_zertifizierung() -> Dict[str, Zertifizierung]:
     result = {}
@@ -21,24 +26,32 @@ def create_or_get_zertifizierung() -> Dict[str, Zertifizierung]:
     return result
 
 
-def run():
+def run(*args):
     """
     Retrieve the current version of the robin wood provider list
+    :param *args if use_cache given, the file won't be downloaded again
     :return:
     """
     # Make sure the homepage criteria are up to date
-    update_criteria_rowo.run()
+    update_criteria_rowo.run(*args)
     if ROWO_PROVIDER_EXCEL_URL is None:
         raise ConfigurationError(
             "Could not perform update as ROWO_PROVIDER_EXCEL_URL is not defined. "
             "Think about adding it to your local.py!"
         )
-
-    with NamedTemporaryFile(suffix=".xlsx", prefix="rowo_liste_") as f:
-        # keep file only as long as not loaded
-        request = requests.get(ROWO_PROVIDER_EXCEL_URL)
-        f.write(request.content)
-        wb = load_workbook(f.name, read_only=True, data_only=True)
+    download_excel_file: bool = True
+    if "use_cache" in args:
+        if DEFAULT_LOCAL_XLSX_PATH.exists():
+            download_excel_file = False
+            logger.info("Using cached Excel file")
+        else:
+            logger.info("Cached Excel does not exist.")
+    if download_excel_file:
+        with DEFAULT_LOCAL_XLSX_PATH.open("wb") as f:
+            request = requests.get(ROWO_PROVIDER_EXCEL_URL)
+            f.write(request.content)
+        logger.info("Downloaded new version of excel file")
+    wb = load_workbook(DEFAULT_LOCAL_XLSX_PATH, read_only=True, data_only=True)
     db_zertifikate = create_or_get_zertifizierung()
     sheet = wb.worksheets[0]
     values = list(sheet.values)
