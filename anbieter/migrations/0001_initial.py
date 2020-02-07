@@ -107,7 +107,7 @@ class Migration(migrations.Migration):
                 (
                     "name",
                     models.CharField(
-                        max_length=256, unique=True, verbose_name="Firmenname"
+                        max_length=200, unique=True, verbose_name="Firmenname"
                     ),
                 ),
                 (

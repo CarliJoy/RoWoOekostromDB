@@ -203,7 +203,7 @@ class Anbieter(PolymorphicModel):
         (101, "Kategorie 13 100%"),
     )
 
-    name = models.CharField("Firmenname", max_length=256, unique=True)
+    name = models.CharField("Firmenname", max_length=200, unique=True)
     ee_anteil = models.DecimalField(
         verbose_name="Anteil Erneuerbare Energien " "(laut Strommix von Lichtblick)",
         max_digits=6,
