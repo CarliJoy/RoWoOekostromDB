@@ -5,7 +5,7 @@ from typing import List, Dict
 
 import requests
 from django.conf import settings
-from django.db import IntegrityError
+from django.db import IntegrityError, DataError
 from openpyxl import load_workbook
 
 from anbieter.conv_helpers import ZERTIFIKATE
@@ -68,7 +68,7 @@ def run(*args):
             anbieter: Anbieter = Anbieter.objects.update_or_create(
                 name=data["name"], defaults=data
             )[0]
-        except IntegrityError:
+        except (IntegrityError, DataError):
             pprint(data)
             raise
         for zertifikat_str in zertifizierung:

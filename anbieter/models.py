@@ -33,6 +33,7 @@ class Zertifizierung(models.Model):
 
     class Meta:
         db_table = "anbieter_zertifizierung"
+        verbose_name_plural = "Zertifizierungen"
 
 
 class HomepageKriterium(models.Model):
@@ -133,6 +134,7 @@ class HomepageKriterium(models.Model):
 
     class Meta:
         db_table = "anbieter_kriterium"
+        verbose_name_plural = "Homepage Kriterien"
 
 
 class Anbieter(PolymorphicModel):
@@ -212,7 +214,7 @@ class Anbieter(PolymorphicModel):
         null=True,
         validators=[
             validators.MinValueValidator(0, EE_ANTEIL_RANGE_MSG),
-            validators.MaxLengthValidator(100, EE_ANTEIL_RANGE_MSG),
+            validators.MaxValueValidator(100, EE_ANTEIL_RANGE_MSG),
         ],
     )
     ee_kategorie = models.PositiveSmallIntegerField(
@@ -223,10 +225,12 @@ class Anbieter(PolymorphicModel):
     )
     plz = PostleitzahlField("PLZ", blank=True, max_length=16)
     stadt = models.CharField("Stadt", max_length=128, blank=True)
-    homepage = models.URLField("Homepage", blank=True)
-    kennzeichnung_link = models.URLField("Link der Kennzeichnung", blank=True)
+    homepage = models.URLField("Homepage", blank=True, max_length=400)
+    kennzeichnung_link = models.URLField(
+        "Link der Kennzeichnung", blank=True, max_length=400
+    )
     fragebogen = models.CharField(
-        choices=((val, val) for val in ["", "x", "(x)", "k.A."]), max_length=5
+        choices=((val, val) for val in ["", "x", "(x)", "k.A."]), max_length=5, blank=True
     )
     rowo_kriterium = models.CharField(
         "RoWo Kriterium",
@@ -363,3 +367,4 @@ class Anbieter(PolymorphicModel):
 
     class Meta:
         db_table = "anbieter"
+        verbose_name_plural = "Anbieter"
