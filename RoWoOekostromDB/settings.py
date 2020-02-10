@@ -49,7 +49,10 @@ try:
 except ImportError:
     DEBUG = False
 
-ALLOWED_HOSTS = []
+try:
+    from .local import ALLOWED_HOSTS
+except ImportError:
+    ALLOWED_HOSTS = []
 
 AUTH_USER_MODEL = "user_app.User"
 
@@ -194,3 +197,24 @@ LOGGING = {
         }
     },
 }
+
+# Import local settings if existing
+try:
+    from .local import STATIC_URL
+except ImportError:
+    pass
+
+try:
+    from .local import STATIC_ROOT
+except ImportError:
+    pass
+
+try:
+    from .local import MEDIA_ROOT
+except ImportError:
+    pass
+
+try:
+    from .local import MEDIA_URL
+except ImportError:
+    pass
