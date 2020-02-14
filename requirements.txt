@@ -19,8 +19,11 @@ mysqlclient==1.4.6
 openpyxl==3.0.3
 phonenumbers==8.11.2
 pycparser==2.19
+python-stdnum==1.13
 pytz==2019.3
+PyYAML==5.3
 requests==2.22.0
 six==1.14.0
 sqlparse==0.3.0
 urllib3==1.25.8
+zipp==2.2.0
