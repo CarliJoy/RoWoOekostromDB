@@ -1,5 +1,6 @@
 """
 Example file for hosting productively.
+Copy/Rename this file to local.py
 The secret key will be added automatically in the first run.
 Please change the settings accordingly to the Django Documentation
 """
