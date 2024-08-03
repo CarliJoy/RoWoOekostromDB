@@ -1,5 +1,6 @@
-RoWoOekostromDB/local.py
 db.sqlite3
 */__pycache__/*
 __pycache__/
-downloads/*
+.idea
+.venv
+.env

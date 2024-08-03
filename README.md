@@ -15,6 +15,15 @@ As this Report and the containing information are relevant mostly Germany
 the following documentation is in German
 only.
 
+# Development
+
+- Ensure `docker`, `docker-compose`, `docker buildx` and `pre-commit` are installed.
+  - Under ubuntu `sudo apt-get install docker-buildx docker-compose pre-commit` 
+- clone and cd to the project root 
+- Create a `.env` file running `python oekostrom_db/generate_env.py`
+- Create the docker containers running `COMPOSE_DOCKER_CLI_BUILD=1 docker-compose build`
+- Simply run `docker-compose up dev` to get a working development installation running under `http://127.0.0.1:8001`
+  
 
 # Einführung
 Dieses git repro beinhaltet die Datenbank zur Verwaltung der Daten aus dem 
