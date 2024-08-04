@@ -41,11 +41,11 @@ class Migration(migrations.Migration):
                 ("mail", models.EmailField(blank=True, db_default="", max_length=255)),
                 (
                     "homepage",
-                    models.URLField(blank=True, db_default="", max_length=255),
+                    models.URLField(blank=True, db_default="", max_length=1024),
                 ),
                 ("scrape_date", models.DateTimeField()),
                 ("tarif", models.CharField(db_default="", max_length=255)),
-                ("tarif_url", models.URLField(db_default="", max_length=255)),
+                ("tarif_url", models.URLField(db_default="", max_length=512)),
                 ("bewertung", models.CharField(db_default="", max_length=255)),
             ],
             options={
@@ -79,11 +79,11 @@ class Migration(migrations.Migration):
                 ("mail", models.EmailField(blank=True, db_default="", max_length=255)),
                 (
                     "homepage",
-                    models.URLField(blank=True, db_default="", max_length=255),
+                    models.URLField(blank=True, db_default="", max_length=1024),
                 ),
                 ("scrape_date", models.DateTimeField()),
                 ("tarif", models.CharField(db_default="", max_length=255)),
-                ("tarif_url", models.URLField(db_default="", max_length=255)),
+                ("tarif_url", models.URLField(db_default="", max_length=512)),
                 ("cert_info", models.CharField(db_default="", max_length=255)),
             ],
             options={
@@ -117,14 +117,14 @@ class Migration(migrations.Migration):
                 ("mail", models.EmailField(blank=True, db_default="", max_length=255)),
                 (
                     "homepage",
-                    models.URLField(blank=True, db_default="", max_length=255),
+                    models.URLField(blank=True, db_default="", max_length=1024),
                 ),
                 ("scrape_date", models.DateTimeField()),
                 (
                     "kennzeichnung_url",
                     models.URLField(
                         db_default="",
-                        max_length=255,
+                        max_length=1024,
                         verbose_name="Link Stromkennzeichnung",
                     ),
                 ),
@@ -160,10 +160,10 @@ class Migration(migrations.Migration):
                 ("mail", models.EmailField(blank=True, db_default="", max_length=255)),
                 (
                     "homepage",
-                    models.URLField(blank=True, db_default="", max_length=255),
+                    models.URLField(blank=True, db_default="", max_length=1024),
                 ),
                 ("scrape_date", models.DateTimeField()),
-                ("portal_url", models.URLField(db_default="", max_length=255)),
+                ("portal_url", models.URLField(db_default="", max_length=512)),
             ],
             options={
                 "abstract": False,
@@ -196,10 +196,10 @@ class Migration(migrations.Migration):
                 ("mail", models.EmailField(blank=True, db_default="", max_length=255)),
                 (
                     "homepage",
-                    models.URLField(blank=True, db_default="", max_length=255),
+                    models.URLField(blank=True, db_default="", max_length=1024),
                 ),
                 ("scrape_date", models.DateTimeField()),
-                ("portal_url", models.URLField(db_default="", max_length=255)),
+                ("portal_url", models.URLField(db_default="", max_length=512)),
             ],
             options={
                 "abstract": False,
@@ -232,7 +232,7 @@ class Migration(migrations.Migration):
                 ("mail", models.EmailField(blank=True, db_default="", max_length=255)),
                 (
                     "homepage",
-                    models.URLField(blank=True, db_default="", max_length=255),
+                    models.URLField(blank=True, db_default="", max_length=1024),
                 ),
                 (
                     "active",
@@ -246,7 +246,7 @@ class Migration(migrations.Migration):
                     "kennzeichnung_url",
                     models.URLField(
                         db_default="",
-                        max_length=255,
+                        max_length=1024,
                         blank=True,
                         verbose_name="Link Stromkennzeichnung",
                     ),

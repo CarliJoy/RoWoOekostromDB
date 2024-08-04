@@ -24,7 +24,7 @@ class AnbieterBase(models.Model):
     fax = models.CharField(max_length=255, db_default="", blank=True)
     note = models.TextField(db_default="", blank=True, help_text="Interne Notizen")
     mail = models.EmailField(max_length=255, db_default="", blank=True)
-    homepage = models.URLField(max_length=255, db_default="", blank=True)
+    homepage = models.URLField(max_length=1024, db_default="", blank=True)
 
     class Meta:
         abstract = True
@@ -42,28 +42,28 @@ class ScrapeBase(AnbieterBase):
 
 class Oekotest(ScrapeBase):
     tarif = models.CharField(max_length=255, db_default="")
-    tarif_url = models.URLField(max_length=255, db_default="")
+    tarif_url = models.URLField(max_length=512, db_default="")
     bewertung = models.CharField(max_length=255, db_default="")
 
 
 class OkPower(ScrapeBase):
     tarif = models.CharField(max_length=255, db_default="")
-    tarif_url = models.URLField(max_length=255, db_default="")
+    tarif_url = models.URLField(max_length=512, db_default="")
     cert_info = models.CharField(max_length=255, db_default="")
 
 
 class Rowo2019(ScrapeBase):
     kennzeichnung_url = models.URLField(
-        max_length=255, db_default="", verbose_name="Link Stromkennzeichnung"
+        max_length=1024, db_default="", verbose_name="Link Stromkennzeichnung"
     )
 
 
 class Stromauskunft(ScrapeBase):
-    portal_url = models.URLField(max_length=255, db_default="")
+    portal_url = models.URLField(max_length=512, db_default="")
 
 
 class Verivox(ScrapeBase):
-    portal_url = models.URLField(max_length=255, db_default="")
+    portal_url = models.URLField(max_length=512, db_default="")
 
 
 KRITERIUM = {
@@ -78,7 +78,7 @@ class Anbieter(AnbieterBase):
         db_default=True, default=True, help_text="Gibt es den Anbieter noch?"
     )
     kennzeichnung_url = models.URLField(
-        max_length=255,
+        max_length=1024,
         db_default="",
         verbose_name="Link Stromkennzeichnung",
         blank=True,
