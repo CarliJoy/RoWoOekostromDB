@@ -60,9 +60,10 @@ ENV VIRTUAL_ENV="/home/app/venv" \
     PATH="/home/app/venv/bin:$PATH"
 
 COPY entrypoint.sh /home/app/entrypoint.sh
+COPY oekostrom-recherche/scraped_data /home/app/oekostrom-recherche/scraped_data
 
 RUN set -ex; \
-    chown app:app /home/app/entrypoint.sh; \
+    chown -R app:app /home/app; \
     chmod a+rx /home/app/entrypoint.sh
 
 USER app

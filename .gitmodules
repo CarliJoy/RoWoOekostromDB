@@ -1,0 +1,3 @@
+[submodule "oekostrom-recherche"]
+	path = oekostrom-recherche
+	url = https://github.com/CarliJoy/oekostrom-recherche.git
