@@ -39,12 +39,19 @@ USER app
 
 RUN \
   --mount=type=bind,source=requirements.txt,target=/home/app/requirements.txt \
-  --mount=type=bind,source=oekostrom_db,target=/home/app/oekostrom_db \
     set -ex; \
     python -m venv /home/app/venv; \
     . /home/app/venv/bin/activate; \
-    pip install --no-cache-dir -r /home/app/requirements.txt ;\
+    pip install --no-cache-dir -r /home/app/requirements.txt
+
+ENV VIRTUAL_ENV="/home/app/venv" \
+    PATH="/home/app/venv/bin:$PATH"
+
+RUN \
+  --mount=type=bind,source=oekostrom_db,target=/home/app/oekostrom_db \
+    set -ex; \
     python /home/app/oekostrom_db/manage.py collectstatic --no-input
+
 
 # Image containing the application.
 FROM base AS app
