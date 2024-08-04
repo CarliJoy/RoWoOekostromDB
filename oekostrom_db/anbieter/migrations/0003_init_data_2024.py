@@ -23,9 +23,10 @@ berlin_timezone = ZoneInfo("Europe/Berlin")
 
 
 class ScrapeAdder:
-    def __init__(self, json_file: str, model_name: str):
+    def __init__(self, json_file: str, model_name: str, add_anbieter: bool = False):
         self.json_file = json_file
         self.model_name = model_name
+        self.add_anbieter = add_anbieter
 
     def __call__(
         self,
@@ -34,6 +35,7 @@ class ScrapeAdder:
     ) -> None:
         # Get the user model
         model: type[Model] = apps.get_model("anbieter", self.model_name)
+        anbieter: type[Model] = apps.get_model("anbieter", "Anbieter")
 
         target = DATA_DIR / self.json_file
         with target.open("r") as f:
@@ -44,21 +46,18 @@ class ScrapeAdder:
         if scraped.tzinfo is None:
             scraped = scraped.replace(tzinfo=berlin_timezone)
 
-        okay: int = 0
-        failed: int = 0
-
+        count: int = 0
         for result in data["results"]:
             name = result["name"]
             del result["name"]
             result["scrape_date"] = scraped
-            try:
-                model.objects.update_or_create(name=name, defaults=result)
-            except Exception:
-                logger.exception(f"Failed to create: {name} for {self.json_file}")
-                failed += 1
-            else:
-                okay += 1
-        logger.info(f"Imported {self.json_file} {okay=}, {failed=}")
+            obj = model.objects.update_or_create(name=name, defaults=result)[0]
+            if self.add_anbieter:
+                result["rowo_2019"] = obj
+                del result["scrape_date"]
+                anbieter.objects.update_or_create(name=name, defaults=result)
+            count += 1
+        logger.info(f"Imported {self.json_file} {count=}")
 
 
 class Migration(migrations.Migration):
@@ -69,7 +68,9 @@ class Migration(migrations.Migration):
     operations = [
         migrations.RunPython(ScrapeAdder("oekotest.json", "Oekotest")),
         migrations.RunPython(ScrapeAdder("okpower.json", "OkPower")),
-        migrations.RunPython(ScrapeAdder("rowo2019.json", "Rowo2019")),
+        migrations.RunPython(
+            ScrapeAdder("rowo2019.json", "Rowo2019", add_anbieter=True)
+        ),
         migrations.RunPython(ScrapeAdder("stromauskunft.json", "Stromauskunft")),
         migrations.RunPython(ScrapeAdder("verivox.json", "Verivox")),
     ]
