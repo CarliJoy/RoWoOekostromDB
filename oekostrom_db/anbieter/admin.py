@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.widgets import AutocompleteSelect
+from django.utils.safestring import mark_safe
 
 from .models import Anbieter, Oekotest, OkPower, Rowo2019, Stromauskunft, Verivox
 
@@ -38,5 +39,12 @@ class AnbieterForm(forms.ModelForm):
 
 @admin.register(Anbieter)
 class AnbieterAdmin(admin.ModelAdmin):
+    list_display = ["name", "active", "homepage_url"]
+    list_per_page = 1500
+    ordering = ("name",)
+
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
+
+    def homepage_url(self, obj: Anbieter) -> str:
+        return mark_safe(f"<a href='{obj.homepage}'>{obj.homepage}</a>")
