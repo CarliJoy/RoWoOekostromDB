@@ -1,0 +1,25 @@
+server {
+    listen       ${NGINX_PORT};
+    server_name  ${NGINX_HOST};
+
+    location / {
+        proxy_set_header Referer $http_referer;
+        # do no include port to prevent csrf problems
+        # see https://stackoverflow.com/a/48646798/3813064
+        proxy_set_header X-Forwarded-Host $host;
+        # proxy_set_header X-Forwarded-Host $host:$server_port;
+        proxy_set_header X-Forwarded-Server $host;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass   http://${NGINX_TARGET};
+    }
+
+    location /static {
+        root /home/app;
+    }
+
+    location /favicon.ico {
+        root /home/app/static;
+    }
+
+}

@@ -80,6 +80,29 @@ FROM app as development
 
 CMD ["/home/app/oekostrom_db/dev.sh" ]
 
+
+FROM nginx:mainline-bookworm as nginx
+
+# copy non root config
+COPY nginx.conf /etc/nginx/nginx.conf
+COPY nginx_site.conf.template /etc/nginx/templates/default.conf.template
+
+RUN mkdir -p /home/app
+
+COPY --from=builder /home/app/static /home/app/static
+COPY favicon.ico /home/app/static/favicon.ico
+
+# ensure write permisisons are okay
+RUN set -ex; \
+    chmod -R a+rX /home; \
+    chown -R nginx:nginx /etc/nginx/; \
+    chmod -R u+rwX /etc/nginx
+
+# TODO create a docker-entrypoint script that makes config ro again
+
+USER nginx
+
+
 ## PRODUCTION
 #FROM app as production
 #

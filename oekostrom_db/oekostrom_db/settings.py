@@ -47,6 +47,10 @@ DEBUG = to_bool(os.environ.get("DEBUG", False))
 ALLOWED_HOSTS = to_list(
     os.environ.get("DJANGO_ALLOWED_HOSTS", "localhost 127.0.0.1 [::1]")
 )
+CSRF_TRUSTED_ORIGINS = to_list(
+    os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:8000")
+)
+
 
 # Application definition
 
