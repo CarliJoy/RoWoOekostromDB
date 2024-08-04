@@ -173,16 +173,10 @@ LOGGING = {
             "style": "{",
         },
     },
-    "filters": {
-        "modify_level": {
-            "()": "oekostrom_db.log_handling.ModifyLevelFilter",
-        },
-    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
-            "filters": ["modify_level"],
         },
     },
     "root": {
