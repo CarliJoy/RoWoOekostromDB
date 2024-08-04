@@ -150,6 +150,12 @@ STATIC_ROOT = BASE_DIR.parent / "static"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+_info_to_console = {
+    "handlers": ["console"],
+    "level": "INFO",
+    "propagate": False,
+}
+
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": True,
@@ -163,10 +169,16 @@ LOGGING = {
             "style": "{",
         },
     },
+    "filters": {
+        "modify_level": {
+            "()": "oekostrom_db.log_handling.ModifyLevelFilter",
+        },
+    },
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
             "formatter": "verbose",
+            "filters": ["modify_level"],
         },
     },
     "root": {
@@ -187,10 +199,7 @@ LOGGING = {
         },
         # but don't log all this autoreload stuff
         # see https://stackoverflow.com/a/75293747/3813064
-        "django.utils.autoreload": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
+        "django.utils.autoreload": _info_to_console,
+        "django.db.backends": _info_to_console,
     },
 }
