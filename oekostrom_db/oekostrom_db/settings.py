@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "anbieter",
 ]
 
 MIDDLEWARE = [
@@ -154,7 +155,7 @@ LOGGING = {
     "disable_existing_loggers": True,
     "formatters": {
         "verbose": {
-            "format": "{asctime} {levelname} {module} {message}",
+            "format": "{asctime} {levelname} {name} {message}",
             "style": "{",
         },
         "simple": {
@@ -173,6 +174,11 @@ LOGGING = {
         "level": "INFO",
     },
     "loggers": {
+        "": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
         # Be verbose when debug mode is on
         "django": {
             "handlers": ["console"],

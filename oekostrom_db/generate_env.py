@@ -39,6 +39,7 @@ def generate_env_file(file: Path) -> None:
     # Define environment variables and their default values
     env_variables = {
         "SECRET_KEY": generate_secret_key(),
+        "DJANGO_ROOT_PASSWORD": generate_random_password(),
         "DB_ENGINE": "django.db.backends.postgresql",
         "DB_DATABASE": db_name,
         "DB_USER": db_user,
