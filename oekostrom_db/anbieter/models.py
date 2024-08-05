@@ -84,19 +84,26 @@ class Anbieter(AnbieterBase):
         blank=True,
     )
     rowo_2019 = models.OneToOneField(
-        Rowo2019, on_delete=models.CASCADE, null=True, blank=True, db_default=None
+        Rowo2019, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
     oekotest = models.OneToOneField(
-        Oekotest, on_delete=models.CASCADE, null=True, blank=True, db_default=None
+        Oekotest, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
     ok_power = models.OneToOneField(
-        OkPower, on_delete=models.CASCADE, null=True, blank=True, db_default=None
+        OkPower, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
     stromauskunft = models.OneToOneField(
-        Stromauskunft, on_delete=models.CASCADE, null=True, blank=True, db_default=None
+        Stromauskunft, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
     verivox = models.OneToOneField(
-        Verivox, on_delete=models.CASCADE, null=True, blank=True, db_default=None
+        Verivox, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+    mutter = models.ForeignKey(
+        "Anbieter",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Mutter Firma",
     )
     ee_anteil = models.PositiveSmallIntegerField(
         null=True,
@@ -155,3 +162,40 @@ class Anbieter(AnbieterBase):
         verbose_name="Begründung",
         help_text="Kurz Begründung warum Kriterien ausgewählt wurden. Wird veröffentlicht.",
     )
+    north_data = models.URLField(
+        max_length=1024,
+        db_default="",
+        verbose_name="North Data Profil",
+        blank=True,
+    )
+    wikipedia = models.URLField(
+        max_length=1024,
+        db_default="",
+        verbose_name="Wikipedia Eintrag",
+        blank=True,
+    )
+
+
+class AnbieterName:
+    name = models.CharField(max_length=255, unique=True)
+    anbieter = models.ForeignKey(
+        Anbieter, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+    rowo_2019 = models.ForeignKey(
+        Rowo2019, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+    oekotest = models.ForeignKey(
+        Oekotest, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+    ok_power = models.ForeignKey(
+        OkPower, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+    stromauskunft = models.ForeignKey(
+        Stromauskunft, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+    verivox = models.ForeignKey(
+        Verivox, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
+    )
+
+    def __str__(self) -> str:
+        return self.name
