@@ -176,11 +176,9 @@ class Anbieter(AnbieterBase):
     )
 
 
-class AnbieterName:
+class AnbieterName(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    anbieter = models.ForeignKey(
-        Anbieter, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
-    )
+    anbieter = models.ForeignKey(Anbieter, on_delete=models.PROTECT)
     rowo_2019 = models.ForeignKey(
         Rowo2019, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
