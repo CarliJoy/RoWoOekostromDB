@@ -1,5 +1,7 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
 
 MAX_PERCENTAGE = 100
 
@@ -32,6 +34,45 @@ class AnbieterBase(models.Model):
     def __str__(self) -> str:
         return self.name
 
+    @property
+    def extra(self) -> str:
+        return ""
+
+    @property
+    def details(self) -> str:
+        result: str = format_html(
+            "<p><h5>{}</h5>Scraped as: <q>{}</q><br />",
+            self.__class__.__name__,
+            self.name,
+        )
+        if self.street or self.city or self.plz:
+            result += format_html(
+                "<strong>Address</strong>: {}, {}, {} <br />",
+                self.street,
+                self.city,
+                self.plz,
+            )
+        if self.phone or self.fax or self.mail:
+            result += mark_safe("<strong>Kontakt</strong>:")
+            if self.phone:
+                result += format_html(
+                    " 📞 <a href='tel:{}'>{}</a> ", self.phone, self.phone
+                )
+            if self.fax:
+                result += format_html(" 📠 {} ", self.fax)
+            if self.mail:
+                result += format_html(
+                    " 📧 <a href='mailto:{}'>{}</a> ", self.mail, self.mail
+                )
+            result += "<br />"
+        if self.homepage:
+            result += format_html(
+                "Homepage: <a href='{}'>{}</a> <br />", self.homepage, self.homepage
+            )
+        if self.extra:
+            result += self.extra + "<br />"
+        return mark_safe(result + "</p>")
+
 
 class ScrapeBase(AnbieterBase):
     scrape_date = models.DateTimeField()
@@ -45,11 +86,29 @@ class Oekotest(ScrapeBase):
     tarif_url = models.URLField(max_length=512, db_default="")
     bewertung = models.CharField(max_length=255, db_default="")
 
+    @property
+    def extra(self) -> str:
+        return format_html(
+            "Bewertung: <a href='{}'>Tarif {} -> {}</a>",
+            self.tarif_url,
+            self.tarif,
+            self.bewertung,
+        )
+
 
 class OkPower(ScrapeBase):
     tarif = models.CharField(max_length=255, db_default="")
     tarif_url = models.URLField(max_length=512, db_default="")
     cert_info = models.CharField(max_length=255, db_default="")
+
+    @property
+    def extra(self) -> str:
+        result = format_html("{}: {}", self.tarif, self.cert_info)
+        if self.tarif_url:
+            # wir kombinieren hier f string und format_html,
+            # damit wir result nicht doppelt escapen
+            result = format_html(f"<a href='{{}}'>{result}</a>", self.tarif_url)
+        return result
 
 
 class Rowo2019(ScrapeBase):
@@ -61,9 +120,17 @@ class Rowo2019(ScrapeBase):
 class Stromauskunft(ScrapeBase):
     portal_url = models.URLField(max_length=512, db_default="")
 
+    @property
+    def extra(self):
+        return format_html("<a href='{}'>Quelle</a>'", self.portal_url)
+
 
 class Verivox(ScrapeBase):
     portal_url = models.URLField(max_length=512, db_default="")
+
+    @property
+    def extra(self):
+        return format_html("<a href='{}'>Quelle</a>", self.portal_url)
 
 
 KRITERIUM = {

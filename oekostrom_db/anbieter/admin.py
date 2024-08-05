@@ -3,12 +3,62 @@ from django.contrib import admin
 from django.contrib.admin.widgets import AutocompleteSelect
 from django.utils.safestring import mark_safe
 
-from .models import Anbieter, Oekotest, OkPower, Rowo2019, Stromauskunft, Verivox
+from .models import (
+    Anbieter,
+    AnbieterName,
+    Oekotest,
+    OkPower,
+    Rowo2019,
+    Stromauskunft,
+    Verivox,
+)
 
 
 @admin.register(OkPower, Oekotest, Rowo2019, Stromauskunft, Verivox)
 class ScraperAdmin(admin.ModelAdmin):
     search_fields = ("name",)
+
+    def has_change_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+    def has_add_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+    def has_delete_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+
+@admin.register(AnbieterName)
+class AnbieterNameAdmin(admin.ModelAdmin):
+    search_fields = ("name",)
+    list_display = [
+        "name",
+        "anbieter",
+        "rowo_2019",
+        "oekotest",
+        "ok_power",
+        "stromauskunft",
+        "verivox",
+    ]
+    list_per_page = 1500
+
+    def has_change_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+    def has_delete_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+
+class FriendshipInline(admin.TabularInline):
+    model = AnbieterName
+    extra = 1
+    fields = ("name",)
+
+    def has_change_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+    def has_delete_permission(self, request, obj=None):  # noqa ARG002
+        return False
 
 
 autocomplete_fields = (
@@ -17,6 +67,7 @@ autocomplete_fields = (
     "ok_power",
     "stromauskunft",
     "verivox",
+    "mutter",
 )
 
 
@@ -39,7 +90,9 @@ class AnbieterForm(forms.ModelForm):
 
 @admin.register(Anbieter)
 class AnbieterAdmin(admin.ModelAdmin):
-    list_display = ["name", "active", "homepage_url"]
+    search_fields = ("name",)
+    list_display = ("name", "active", "homepage_url")
+    inlines = (FriendshipInline,)
     list_per_page = 1500
     ordering = ("name",)
 
@@ -48,3 +101,26 @@ class AnbieterAdmin(admin.ModelAdmin):
 
     def homepage_url(self, obj: Anbieter) -> str:
         return mark_safe(f"<a href='{obj.homepage}'>{obj.homepage}</a>")
+
+    def scrape_info(self, obj: Anbieter) -> str:
+        result = ""
+        for elm in (
+            obj.rowo_2019,
+            obj.oekotest,
+            obj.ok_power,
+            obj.stromauskunft,
+            obj.verivox,
+        ):
+            if elm:
+                result += elm.details
+        return mark_safe(result)
+
+    readonly_fields = ("scrape_info",)
+
+    def get_fields(self, request, obj=None):
+        fields = list(super().get_fields(request, obj))
+
+        insert_at = fields.index("active")
+        fields.insert(insert_at, "scrape_info")
+
+        return fields
