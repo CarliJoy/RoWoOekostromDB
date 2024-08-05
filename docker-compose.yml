@@ -36,18 +36,6 @@ services:
     depends_on:
       - dev
 
-#  prod:
-#    build:
-#      context: .
-#      target: production
-#    container_name: rowo_oekostrom_db_prod
-#    env_file:
-#      - .env
-#    depends_on:
-#      - db
-#    ports:
-#      - "8000:8000"
-
   db:
     image: postgres:13
     restart: always
@@ -56,9 +44,5 @@ services:
     container_name: rowo_oekostrom_db_postgres
     env_file:
       - .env
-#    volumes:
-#      - type: bind
-#        source: ./.db
-#        target: /var/lib/postgresql/data/
     ports:
       - "5432:5432"

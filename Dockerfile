@@ -42,6 +42,7 @@ RUN \
     set -ex; \
     python -m venv /home/app/venv; \
     . /home/app/venv/bin/activate; \
+    pip install --upgrade pip; \
     pip install --no-cache-dir -r /home/app/requirements.txt
 
 ENV VIRTUAL_ENV="/home/app/venv" \
@@ -104,19 +105,15 @@ RUN set -ex; \
 USER nginx
 
 
-## PRODUCTION
-#FROM app as production
-#
-## Copy project
-#COPY oekostrom_db /home/app/oekostrom_db
-#
-## Create a directory for static files
-#RUN \
-#    set -ex; \
-#    mkdir -p /home/app/static; \
-#    find /home/app | grep -v /home/app/venv; \
+# PRODUCTION
+FROM app as production
 
-# TODO
-# - cache pip deps https://stackoverflow.com/questions/58018300/using-a-pip-cache-directory-in-docker-builds
-# - create nginx based image for static files
-# -
+# Copy project
+COPY oekostrom_db /home/app/oekostrom_db
+
+EXPOSE 8000
+
+WORKDIR /home/app
+
+# Command to run Daphne server
+CMD ["daphne", "-b", "0.0.0.0", "-p", "8000", "oekostrom_db.asgi:application"]

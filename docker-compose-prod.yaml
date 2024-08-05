@@ -1,0 +1,46 @@
+version: '3.8'
+
+services:
+  prod:
+    build:
+      context: .
+      target: production
+    container_name: rowo_oekostrom_db_prod
+    env_file:
+      - .env
+    environment:
+      DJANGO_ALLOWED_HOSTS: "localhost 127.0.0.1 prod rowo.kound.de"
+      DJANGO_CSRF_TRUSTED_ORIGINS: "http://127.0.0.1 http://127.0.0.1:8000 https://rowo.kound.de"
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  nginx_prod:
+    build:
+      context: .
+      target: nginx
+    container_name: rowo_oekostrom_db_nginx_prod
+    environment:
+      NGINX_HOST: "foobar.com"
+      NGINX_PORT: "8001"
+      NGINX_TARGET: "prod:8000"
+    ports:
+      - "80:80"
+    depends_on:
+      - prod
+
+  db:
+    image: postgres:13
+    restart: always
+    # set shared memory limit when using docker-compose
+    shm_size: 128mb
+    container_name: rowo_oekostrom_db_postgres_prod
+    env_file:
+      - .env
+    volumes:
+      - type: bind
+        source: ./.db
+        target: /var/lib/postgresql/data/
+    ports:
+      - "5432:5432"

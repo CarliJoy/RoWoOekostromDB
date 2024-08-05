@@ -55,6 +55,7 @@ CSRF_TRUSTED_ORIGINS = to_list(
 # Application definition
 
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -63,6 +64,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "anbieter",
 ]
+
+ASGI_APPLICATION = "oekostrom_db.asgi.application"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -77,6 +80,8 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = "oekostrom_db.urls"
 
+CSRF_COOKIE_SECURE = to_bool(os.environ.get("DJANGO_HTTPS", False))
+SESSION_COOKIE_SECURE = to_bool(os.environ.get("DJANGO_HTTPS", False))
 
 TEMPLATES = [
     {
