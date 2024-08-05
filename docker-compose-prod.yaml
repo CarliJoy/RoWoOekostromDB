@@ -16,19 +16,19 @@ services:
     ports:
       - "8000:8000"
 
-  nginx_prod:
-    build:
-      context: .
-      target: nginx
-    container_name: rowo_oekostrom_db_nginx_prod
-    environment:
-      NGINX_HOST: "foobar.com"
-      NGINX_PORT: "8001"
-      NGINX_TARGET: "prod:8000"
-    ports:
-      - "80:80"
-    depends_on:
-      - prod
+#  nginx_prod:
+#    build:
+#      context: .
+#      target: nginx
+#    container_name: rowo_oekostrom_db_nginx_prod
+#    environment:
+#      NGINX_HOST: "foobar.com"
+#      NGINX_PORT: "8001"
+#      NGINX_TARGET: "prod:8000"
+#    ports:
+#      - "80:80"
+#    depends_on:
+#      - prod
 
   db:
     image: postgres:13
