@@ -33,14 +33,42 @@ class AnbieterNameAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     list_display = [
         "name",
-        "anbieter",
-        "rowo_2019",
-        "oekotest",
-        "ok_power",
-        "stromauskunft",
-        "verivox",
+        "the_anbieter_id",
+        "has_rowo_2019",
+        "has_oekotest",
+        "has_ok_power",
+        "has_stromauskunft",
+        "has_verivox",
     ]
-    list_per_page = 1500
+    list_per_page = 250
+
+    @admin.display(description="Anbieter", ordering="anbieter__name")
+    def the_anbieter_id(self, obj: AnbieterName) -> str:
+        return str(obj.anbieter.id)
+
+    @admin.display(
+        description="Robinwood 2019", boolean=True, ordering="rowo_2019__name"
+    )
+    def has_rowo_2019(self, obj: AnbieterName) -> bool:
+        return obj.rowo_2019 is not None
+
+    @admin.display(description="Ökotest", boolean=True, ordering="oekotest__name")
+    def has_oekotest(self, obj: AnbieterName) -> bool:
+        return obj.oekotest is not None
+
+    @admin.display(description="OK Power", boolean=True, ordering="ok_power__name")
+    def has_ok_power(self, obj: AnbieterName) -> bool:
+        return obj.ok_power is not None
+
+    @admin.display(
+        description="Stromauskunft", boolean=True, ordering="stromauskunft__name"
+    )
+    def has_stromauskunft(self, obj: AnbieterName) -> bool:
+        return obj.stromauskunft is not None
+
+    @admin.display(description="Verivox", boolean=True, ordering="verivox__name")
+    def has_verivox(self, obj: AnbieterName) -> bool:
+        return obj.verivox is not None
 
     def has_change_permission(self, request, obj=None):  # noqa ARG002
         return False
@@ -124,3 +152,6 @@ class AnbieterAdmin(admin.ModelAdmin):
         fields.insert(insert_at, "scrape_info")
 
         return fields
+
+    def has_delete_permission(self, request, obj=None):  # noqa ARG002
+        return False
