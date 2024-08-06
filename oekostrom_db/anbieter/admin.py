@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.widgets import AutocompleteSelect
+from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models import (
@@ -119,7 +120,8 @@ class AnbieterForm(forms.ModelForm):
 @admin.register(Anbieter)
 class AnbieterAdmin(admin.ModelAdmin):
     search_fields = ("name",)
-    list_display = ("name", "active", "homepage_url")
+    list_display = ("name", "active", "status", "homepage_url")
+    list_filter = ["active", "status"]
     inlines = (FriendshipInline,)
     list_per_page = 1500
     ordering = ("name",)
@@ -128,7 +130,22 @@ class AnbieterAdmin(admin.ModelAdmin):
     autocomplete_fields = autocomplete_fields
 
     def homepage_url(self, obj: Anbieter) -> str:
-        return mark_safe(f"<a href='{obj.homepage}'>{obj.homepage}</a>")
+        return format_html("<a href='{url}'>{url}</a>", url=obj.homepage)
+
+    def such_links(self, obj: Anbieter) -> str:
+        return format_html(
+            """
+            <a href="https://www.google.com/search?q={name}", target="_blank">
+                    Google Firmenname</a>, <br />
+            <a href="https://www.google.com/search?q={name}+Stromkennzeichnung", target="_blank">
+                    Google Stromkennzeichnung</a>, <br />
+            <a href="https://www.northdata.de/{name}", target="_blank">
+                    North Data</a>, <br />
+            <a href="https://de.wikipedia.org/w/index.php?search={name}",target="_blank">
+                    Wikipedia</a>, <br />
+            """,
+            name=obj.name,
+        )
 
     def scrape_info(self, obj: Anbieter) -> str:
         result = ""
@@ -143,15 +160,16 @@ class AnbieterAdmin(admin.ModelAdmin):
                 result += elm.details
         return mark_safe(result)
 
-    readonly_fields = ("scrape_info",)
+    readonly_fields = ("scrape_info", "such_links")
 
     def get_fields(self, request, obj=None):
         fields = list(super().get_fields(request, obj))
 
         insert_at = fields.index("active")
         fields.insert(insert_at, "scrape_info")
+        fields.insert(insert_at, "such_links")
 
-        return fields
+        return fields[:-2]
 
     def has_delete_permission(self, request, obj=None):  # noqa ARG002
         return False

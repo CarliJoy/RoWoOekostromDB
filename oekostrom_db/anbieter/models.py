@@ -165,6 +165,23 @@ class Anbieter(AnbieterBase):
     verivox = models.OneToOneField(
         Verivox, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
+    status = models.PositiveIntegerField(
+        db_default=0,
+        choices={
+            0: "0 - Nicht geprüft",
+            4: "4 - Existenz geprüft",
+            8: "8 - Ökostrom geprüft",
+            16: "16 - Ökostrom Anteil geprüft",
+            32: "32 - EE Anteil geprüft",
+            64: "64 - Zusätzlichkeit geprüft",
+            128: "128 - Unabhängigkeit geprüft ",
+            256: "256 - Kein Geld Atom/Kohl geprüft",
+            512: "512 - Fragebogen versendet",
+            1024: "1024 - Fragebogen zurück erhalten",
+            2048: "2048 - Fragebogen eingearbeitet",
+            4096: "4096 - Prüfung beendet",
+        },
+    )
     mutter = models.ForeignKey(
         "Anbieter",
         on_delete=models.SET_NULL,
