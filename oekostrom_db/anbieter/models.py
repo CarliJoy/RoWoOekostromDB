@@ -267,6 +267,9 @@ class Anbieter(AnbieterBase):
         blank=True,
     )
 
+    class Meta:
+        verbose_name_plural = "Anbieter"
+
     def clean(self):
         """
         Ensure no duplicate names are created
@@ -300,6 +303,9 @@ class AnbieterName(models.Model):
     verivox = models.ForeignKey(
         Verivox, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
+
+    class Meta:
+        verbose_name_plural = "Anbieter: Namessammlung"
 
     def __str__(self) -> str:
         return self.name
