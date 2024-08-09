@@ -75,10 +75,6 @@ class AnbieterBase(models.Model):
             result += self.extra + "<br />"
         return mark_safe(result + "</p>")
 
-    @property
-    def has_address(self) -> bool:
-        return bool(self.street and self.city and self.plz)
-
 
 class ScrapeBase(AnbieterBase):
     scrape_date = models.DateTimeField()
