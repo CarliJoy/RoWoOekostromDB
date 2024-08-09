@@ -168,6 +168,11 @@ _info_to_console = {
     "level": "INFO",
     "propagate": False,
 }
+_debug_to_console_on_debug = {
+    "handlers": ["console"],
+    "level": "DEBUG" if DEBUG else "INFO",
+    "propagate": False,
+}
 
 LOGGING = {
     "version": 1,
@@ -193,17 +198,11 @@ LOGGING = {
         "level": "INFO",
     },
     "loggers": {
-        "": {
-            "handlers": ["console"],
-            "level": "INFO",
-            "propagate": False,
-        },
+        "": _info_to_console,
         # Be verbose when debug mode is on
-        "django": {
-            "handlers": ["console"],
-            "level": "DEBUG" if DEBUG else "INFO",
-            "propagate": False,
-        },
+        "django": _debug_to_console_on_debug,
+        "oekostrom_db": _debug_to_console_on_debug,
+        "anbieter": _debug_to_console_on_debug,
         # but don't log all this autoreload stuff
         # see https://stackoverflow.com/a/75293747/3813064
         "django.utils.autoreload": _info_to_console,
