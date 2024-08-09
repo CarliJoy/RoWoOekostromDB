@@ -1,5 +1,6 @@
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models.functions import Now
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -261,6 +262,13 @@ class Anbieter(AnbieterBase):
         db_default="",
         verbose_name="Wikipedia Eintrag",
         blank=True,
+    )
+
+    last_updated = models.DateTimeField(
+        auto_now=True, null=True, editable=False, db_default=Now()
+    )
+    created_at = models.DateTimeField(
+        auto_now_add=True, null=True, editable=False, db_default=Now()
     )
 
     class Meta:

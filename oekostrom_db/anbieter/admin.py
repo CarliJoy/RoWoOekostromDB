@@ -216,10 +216,21 @@ class AnbieterAdmin(admin.ModelAdmin):
                 result += elm.details
         return mark_safe(result)
 
-    readonly_fields = ("scrape_info", "such_links")
+    readonly_fields = ("scrape_info", "such_links", "last_updated", "created_at")
 
     fieldsets = [
-        (None, {"fields": ["name", "mutter", "active", "status"]}),
+        (
+            None,
+            {
+                "fields": [
+                    "name",
+                    "mutter",
+                    "active",
+                    "status",
+                    ("last_updated", "created_at"),
+                ]
+            },
+        ),
         (
             "Kontakt",
             {"fields": ["street", "city", "plz", "phone", "fax", "note", "mail"]},
