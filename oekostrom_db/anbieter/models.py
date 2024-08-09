@@ -75,6 +75,10 @@ class AnbieterBase(models.Model):
             result += self.extra + "<br />"
         return mark_safe(result + "</p>")
 
+    @property
+    def has_address(self) -> bool:
+        return bool(self.street and self.city and self.plz)
+
 
 class ScrapeBase(AnbieterBase):
     scrape_date = models.DateTimeField()
@@ -262,6 +266,20 @@ class Anbieter(AnbieterBase):
         verbose_name="Wikipedia Eintrag",
         blank=True,
     )
+
+    def clean(self):
+        """
+        Ensure no duplicate names are created
+        """
+        super().clean()
+        try:
+            obj = AnbieterName.objects.get(name=self.name)
+        except AnbieterName.DoesNotExist:
+            return
+        if obj.anbieter != self:
+            raise ValidationError(
+                f"{self.name} ist bereits für {obj.anbieter} in Benutzung."
+            )
 
 
 class AnbieterName(models.Model):

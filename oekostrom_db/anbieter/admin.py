@@ -1,6 +1,7 @@
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.widgets import AutocompleteSelect
+from django.http import HttpRequest
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
@@ -82,6 +83,7 @@ class FriendshipInline(admin.TabularInline):
     model = AnbieterName
     extra = 1
     fields = ("name",)
+    verbose_name_plural = "Alternative Namen für Anbieter"
 
     def has_change_permission(self, request, obj=None):  # noqa ARG002
         return False
@@ -114,6 +116,8 @@ class AnbieterForm(forms.ModelForm):
                 },
             )
             for field in autocomplete_fields
+        } | {
+            "note": forms.Textarea(attrs={"class": "vLargeTextField", "rows": "2"}),
         }
 
 
@@ -164,14 +168,62 @@ class AnbieterAdmin(admin.ModelAdmin):
 
     readonly_fields = ("scrape_info", "such_links")
 
-    def get_fields(self, request, obj=None):
-        fields = list(super().get_fields(request, obj))
+    fieldsets = [
+        (None, {"fields": ["name", "mutter", "active", "status"]}),
+        (
+            "Kontakt",
+            {"fields": ["street", "city", "plz", "phone", "fax", "note", "mail"]},
+        ),
+        (
+            "Kontext",
+            {
+                "fields": [
+                    "scrape_info",
+                    "such_links",
+                    "homepage",
+                    "north_data",
+                    "wikipedia",
+                ],
+                "description": "Hilfreiche Infos für die Recherche",
+            },
+        ),
+        (
+            "Prüfung",
+            {
+                "fields": [
+                    "kennzeichnung_url",
+                    "ee_anteil",
+                    "nur_oeko",
+                    "unabhaengigkeit",
+                    "zusaetzlichkeit",
+                    "money_for_ee_only",
+                    "begruendung",
+                ]
+            },
+        ),
+        (
+            "Scrape Referenz",
+            {
+                "fields": [
+                    "rowo_2019",
+                    "oekotest",
+                    "ok_power",
+                    "stromauskunft",
+                    "verivox",
+                ],
+                "description": "Ändern der Scrape Referenzen",
+                "classes": ["collapse"],
+            },
+        ),
+    ]
 
-        insert_at = fields.index("active")
-        fields.insert(insert_at, "scrape_info")
-        fields.insert(insert_at, "such_links")
-
-        return fields[:-2]
+    def save_model(
+        self, request: HttpRequest, obj: Anbieter, form: forms.Form, change: bool
+    ) -> None:
+        super().save_model(request, obj, form, change)
+        # clean should take care that name isn't used already
+        if obj.name not in obj.anbietername_set.values_list("name", flat=True):
+            AnbieterName.objects.update_or_create(name=obj.name, anbieter=obj)
 
     def has_delete_permission(self, request, obj=None):  # noqa ARG002
         return False
