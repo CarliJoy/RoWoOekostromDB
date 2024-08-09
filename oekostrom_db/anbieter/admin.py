@@ -132,6 +132,7 @@ class AnbieterAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "active",
+        "has_mutter",
         "status",
         "homepage_url",
         "ee_only",
@@ -166,6 +167,10 @@ class AnbieterAdmin(admin.ModelAdmin):
         return format_html(
             "<a href='{url}' target='_blank'>{name}</a>", url=obj.homepage, name=name
         )
+
+    @admin.display(description="Mutter", ordering="mutter", boolean=True)
+    def has_mutter(self, obj: Anbieter) -> bool:
+        return bool(obj.mutter)
 
     @admin.display(description="100% Öko", ordering="nur_oeko", boolean=True)
     def ee_only(self, obj: Anbieter) -> bool:
