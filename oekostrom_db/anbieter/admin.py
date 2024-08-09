@@ -136,16 +136,16 @@ class AnbieterAdmin(admin.ModelAdmin):
         "status",
         "homepage_url",
         "ee_only",
-        "independent",
         "additional",
+        "independent",
         "no_bad_money",
     )
     list_filter = [
         "active",
         "status",
         "nur_oeko",
-        "unabhaengigkeit",
         "zusaetzlichkeit",
+        "unabhaengigkeit",
         "money_for_ee_only",
     ]
     inlines = (FriendshipInline,)
@@ -176,13 +176,13 @@ class AnbieterAdmin(admin.ModelAdmin):
     def ee_only(self, obj: Anbieter) -> bool:
         return obj.nur_oeko
 
-    @admin.display(description="unabh.", ordering="unabhaengigkeit", boolean=True)
-    def independent(self, obj: Anbieter) -> bool:
-        return obj.unabhaengigkeit
-
     @admin.display(description="zusatz.", ordering="zusaetzlichkeit", boolean=True)
     def additional(self, obj: Anbieter) -> bool:
         return obj.zusaetzlichkeit
+
+    @admin.display(description="unabh.", ordering="unabhaengigkeit", boolean=True)
+    def independent(self, obj: Anbieter) -> bool:
+        return obj.unabhaengigkeit
 
     @admin.display(description="💰", ordering="money_for_ee_only", boolean=True)
     def no_bad_money(self, obj: Anbieter) -> bool:
@@ -244,8 +244,8 @@ class AnbieterAdmin(admin.ModelAdmin):
                     "kennzeichnung_url",
                     "ee_anteil",
                     "nur_oeko",
-                    "unabhaengigkeit",
                     "zusaetzlichkeit",
+                    "unabhaengigkeit",
                     "money_for_ee_only",
                     "begruendung",
                 ]
