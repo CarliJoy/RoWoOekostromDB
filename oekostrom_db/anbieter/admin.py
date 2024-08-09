@@ -123,6 +123,7 @@ class AnbieterForm(forms.ModelForm):
             for field in autocomplete_fields
         } | {
             "note": forms.Textarea(attrs={"class": "vLargeTextField", "rows": "2"}),
+            "plz": forms.TextInput(attrs={"size": "6"}),
         }
 
 
@@ -233,7 +234,16 @@ class AnbieterAdmin(admin.ModelAdmin):
         ),
         (
             "Kontakt",
-            {"fields": ["street", "city", "plz", "phone", "fax", "note", "mail"]},
+            {
+                "fields": [
+                    "street",
+                    ("plz", "city"),
+                    "phone",
+                    "fax",
+                    "note",
+                    "mail",
+                ]
+            },
         ),
         (
             "Kontext",
