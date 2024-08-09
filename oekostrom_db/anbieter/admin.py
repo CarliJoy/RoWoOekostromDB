@@ -130,7 +130,9 @@ class AnbieterAdmin(admin.ModelAdmin):
     autocomplete_fields = autocomplete_fields
 
     def homepage_url(self, obj: Anbieter) -> str:
-        return format_html("<a href='{url}'>{url}</a>", url=obj.homepage)
+        return format_html(
+            "<a href='{url}' target='_blank'>{url}</a>", url=obj.homepage
+        )
 
     def such_links(self, obj: Anbieter) -> str:
         return format_html(

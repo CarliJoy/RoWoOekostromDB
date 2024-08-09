@@ -67,7 +67,9 @@ class AnbieterBase(models.Model):
             result += "<br />"
         if self.homepage:
             result += format_html(
-                "Homepage: <a href='{}'>{}</a> <br />", self.homepage, self.homepage
+                "Homepage: <a href='{}' target='_blank'>{}</a> <br />",
+                self.homepage,
+                self.homepage,
             )
         if self.extra:
             result += self.extra + "<br />"
@@ -89,7 +91,7 @@ class Oekotest(ScrapeBase):
     @property
     def extra(self) -> str:
         return format_html(
-            "Bewertung: <a href='{}'>Tarif {} -> {}</a>",
+            "Bewertung: <a href='{}' target='_blank'>Tarif {} -> {}</a>",
             self.tarif_url,
             self.tarif,
             self.bewertung,
@@ -107,7 +109,9 @@ class OkPower(ScrapeBase):
         if self.tarif_url:
             # wir kombinieren hier f string und format_html,
             # damit wir result nicht doppelt escapen
-            result = format_html(f"<a href='{{}}'>{result}</a>", self.tarif_url)
+            result = format_html(
+                f"<a href='{{}}' target='_blank'>{result}</a>", self.tarif_url
+            )
         return result
 
 
@@ -122,7 +126,7 @@ class Stromauskunft(ScrapeBase):
 
     @property
     def extra(self):
-        return format_html("<a href='{}'>Quelle</a>'", self.portal_url)
+        return format_html("<a href='{}' target='_blank'>Quelle</a>'", self.portal_url)
 
 
 class Verivox(ScrapeBase):
@@ -130,7 +134,7 @@ class Verivox(ScrapeBase):
 
     @property
     def extra(self):
-        return format_html("<a href='{}'>Quelle</a>", self.portal_url)
+        return format_html("<a href='{}' target='_blank'>Quelle</a>", self.portal_url)
 
 
 KRITERIUM = {
