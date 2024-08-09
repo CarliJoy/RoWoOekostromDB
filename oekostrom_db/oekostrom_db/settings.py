@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.forms",
     "anbieter",
 ]
 
@@ -86,7 +87,7 @@ SESSION_COOKIE_SECURE = to_bool(os.environ.get("DJANGO_HTTPS", False))
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -98,6 +99,9 @@ TEMPLATES = [
         },
     },
 ]
+# Render our template forms
+# https://stackoverflow.com/a/46836189/3813064
+FORM_RENDERER = "django.forms.renderers.TemplatesSetting"
 
 WSGI_APPLICATION = "oekostrom_db.wsgi.application"
 
