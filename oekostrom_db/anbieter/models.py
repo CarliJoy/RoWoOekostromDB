@@ -242,7 +242,7 @@ class Anbieter(AnbieterBase):
         db_default=None,
         blank=True,
         choices=KRITERIUM,
-        verbose_name="Kein Geld für Kohle und Atom",
+        verbose_name="💰 Kein Geld für Kohle und Atom",
         help_text=(
             "Der Anbieter bezieht Strom von Anlagen mit geringen Verflechtungen "
             "mit Kohle- oder Atomkonzernen. "

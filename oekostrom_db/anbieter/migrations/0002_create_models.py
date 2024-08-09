@@ -331,7 +331,7 @@ class Migration(migrations.Migration):
                             "Neuinvestitionen in Kohle- und Atomkraftwerke sind nicht zulässig."
                         ),
                         null=True,
-                        verbose_name="Kein Geld für Kohle und Atom",
+                        verbose_name="💰 Kein Geld für Kohle und Atom",
                     ),
                 ),
                 (

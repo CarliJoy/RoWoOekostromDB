@@ -1,3 +1,6 @@
+import logging
+from urllib.parse import urlparse
+
 from django import forms
 from django.contrib import admin
 from django.contrib.admin.widgets import AutocompleteSelect
@@ -14,6 +17,8 @@ from .models import (
     Stromauskunft,
     Verivox,
 )
+
+logger = logging.getLogger(__name__)
 
 
 @admin.register(OkPower, Oekotest, Rowo2019, Stromauskunft, Verivox)
@@ -124,8 +129,24 @@ class AnbieterForm(forms.ModelForm):
 @admin.register(Anbieter)
 class AnbieterAdmin(admin.ModelAdmin):
     search_fields = ("name",)
-    list_display = ("name", "active", "status", "homepage_url")
-    list_filter = ["active", "status"]
+    list_display = (
+        "name",
+        "active",
+        "status",
+        "homepage_url",
+        "ee_only",
+        "independent",
+        "additional",
+        "no_bad_money",
+    )
+    list_filter = [
+        "active",
+        "status",
+        "nur_oeko",
+        "unabhaengigkeit",
+        "zusaetzlichkeit",
+        "money_for_ee_only",
+    ]
     inlines = (FriendshipInline,)
     list_per_page = 1500
     ordering = ("name",)
@@ -133,10 +154,34 @@ class AnbieterAdmin(admin.ModelAdmin):
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
 
+    @admin.display(description="Homepage", ordering="homepage")
     def homepage_url(self, obj: Anbieter) -> str:
+        if not obj.homepage:
+            return ""
+        url = urlparse(obj.homepage)
+        if not url.hostname:
+            logger.warning(f"{obj} has invalid homepage url '{obj.homepage}'")
+            return ""
+        name = url.hostname.removeprefix("www.")
         return format_html(
-            "<a href='{url}' target='_blank'>{url}</a>", url=obj.homepage
+            "<a href='{url}' target='_blank'>{name}</a>", url=obj.homepage, name=name
         )
+
+    @admin.display(description="100% Öko", ordering="nur_oeko", boolean=True)
+    def ee_only(self, obj: Anbieter) -> bool:
+        return obj.nur_oeko
+
+    @admin.display(description="unabh.", ordering="unabhaengigkeit", boolean=True)
+    def independent(self, obj: Anbieter) -> bool:
+        return obj.unabhaengigkeit
+
+    @admin.display(description="zusatz.", ordering="zusaetzlichkeit", boolean=True)
+    def additional(self, obj: Anbieter) -> bool:
+        return obj.zusaetzlichkeit
+
+    @admin.display(description="💰", ordering="money_for_ee_only", boolean=True)
+    def no_bad_money(self, obj: Anbieter) -> bool:
+        return obj.money_for_ee_only
 
     def such_links(self, obj: Anbieter) -> str:
         return format_html(
