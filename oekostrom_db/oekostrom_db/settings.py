@@ -209,3 +209,5 @@ LOGGING = {
         "django.db.backends": _info_to_console,
     },
 }
+SESSION_COOKIE_AGE = 3600 * 24 * 30  # a month
+SESSION_SAVE_EVERY_REQUEST = True
