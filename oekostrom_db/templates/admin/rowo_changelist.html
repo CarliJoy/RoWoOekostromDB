@@ -1,0 +1,40 @@
+{% extends "admin/change_list.html" %}
+
+{% block header %}
+    {{ block.super }}
+
+    <style>
+
+        /* make changelist filter small by default */
+        #changelist-filter {
+          position: absolute;
+          display: block;
+          right: 0;
+          border: solid rgba(255, 0, 0, 0.2) 0.5px;
+          width: 8em;
+          height: 2em;
+        }
+        /* prevent inner elements to be visible */
+        #changelist-filter * {
+          height: 0;
+          display: none;
+        }
+        /* but show the filter header */
+        #changelist-filter-header {
+          height: auto;
+          display: block;
+        }
+        /* when hovering, recover size again */
+        #changelist-filter:hover {
+          height: auto;
+          width: auto;
+        }
+        /* and display the inner content */
+        #changelist-filter:hover * {
+          height: auto;
+          display: block;
+        }
+
+    </style>
+{% endblock %}
+

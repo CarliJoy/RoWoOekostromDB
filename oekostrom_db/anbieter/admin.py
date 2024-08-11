@@ -149,6 +149,9 @@ class AnbieterAdmin(admin.ModelAdmin):
         "unabhaengigkeit",
         "money_for_ee_only",
     ]
+
+    change_list_template = "admin/rowo_changelist.html"
+
     inlines = (FriendshipInline,)
     list_per_page = 1500
     ordering = ("name",)
