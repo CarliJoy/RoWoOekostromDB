@@ -10,8 +10,11 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 
+import logging
 import os
 from pathlib import Path
+
+from django.http import HttpRequest, HttpResponseForbidden
 
 TRUE_REPRESENTATIONS = {"true", "y", "yes", "on"}
 
@@ -51,6 +54,22 @@ CSRF_TRUSTED_ORIGINS = to_list(
     os.environ.get("DJANGO_CSRF_TRUSTED_ORIGINS", "http://127.0.0.1:8000")
 )
 
+
+def csrf_failure(request: "HttpRequest", reason: str = "") -> HttpResponseForbidden:
+    logging.getLogger(__name__).warning(f"CSRF failed: {reason}")
+
+    return HttpResponseForbidden(
+        f"<html><head><title>CSRF Failure</title></head><body>"
+        f"<h1>CSRF Failure</h1>"
+        f"CSRF failed: {reason}. DEBUG INFO: <br />"
+        f"CSRF cookie set: {'csrftoken' in request.COOKIES} <br />"
+        f"Session would expire in: {request.session.get_expiry_age()}s<br />"
+        f"Session cookie reset on browser close: {request.session.get_expire_at_browser_close()}"
+        "</body></html>"
+    )
+
+
+CSRF_FAILURE_VIEW = csrf_failure
 
 # Application definition
 
