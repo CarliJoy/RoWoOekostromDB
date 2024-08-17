@@ -9,6 +9,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
 from .models import (
+    STATUS_CHOICES,
     Anbieter,
     AnbieterName,
     Oekotest,
@@ -192,6 +193,10 @@ class AnbieterAdmin(admin.ModelAdmin):
     def no_bad_money(self, obj: Anbieter) -> bool:
         return obj.money_for_ee_only
 
+    @admin.display(description="Status")
+    def status_ro(self, obj: Anbieter) -> str:
+        return STATUS_CHOICES.get(obj.status, f"{obj.status} - ?")
+
     def such_links(self, obj: Anbieter) -> str:
         return format_html(
             """
@@ -220,7 +225,13 @@ class AnbieterAdmin(admin.ModelAdmin):
                 result += elm.details
         return mark_safe(result)
 
-    readonly_fields = ("scrape_info", "such_links", "last_updated", "created_at")
+    readonly_fields = (
+        "scrape_info",
+        "such_links",
+        "last_updated",
+        "created_at",
+        "status_ro",
+    )
 
     fieldsets = [
         (
@@ -230,7 +241,7 @@ class AnbieterAdmin(admin.ModelAdmin):
                     "name",
                     "mutter",
                     "active",
-                    "status",
+                    "status_ro",
                     ("last_updated", "created_at"),
                 ]
             },
@@ -289,6 +300,7 @@ class AnbieterAdmin(admin.ModelAdmin):
                 "classes": ["collapse"],
             },
         ),
+        ("Status", {"fields": ["status"]}),
     ]
 
     def save_model(
