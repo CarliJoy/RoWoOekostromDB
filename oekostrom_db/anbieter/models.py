@@ -164,6 +164,9 @@ class Anbieter(AnbieterBase):
     active = models.BooleanField(
         db_default=True, default=True, help_text="Gibt es den Anbieter noch?"
     )
+    german_wide = models.BooleanField(
+        db_default=True, verbose_name="🇩🇪", help_text="Deutschlandweiter Anbieter"
+    )
     kennzeichnung_url = models.URLField(
         max_length=1024,
         db_default="",

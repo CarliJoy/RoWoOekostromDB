@@ -134,6 +134,7 @@ class AnbieterAdmin(admin.ModelAdmin):
     list_display = (
         "name",
         "active",
+        "german_wide",
         "has_mutter",
         "status",
         "homepage_url",
@@ -145,6 +146,7 @@ class AnbieterAdmin(admin.ModelAdmin):
     list_filter = [
         "active",
         "status",
+        "german_wide",
         "nur_oeko",
         "zusaetzlichkeit",
         "unabhaengigkeit",
@@ -239,8 +241,9 @@ class AnbieterAdmin(admin.ModelAdmin):
             {
                 "fields": [
                     "name",
-                    "mutter",
                     "active",
+                    "german_wide",
+                    "mutter",
                     "status_ro",
                     ("last_updated", "created_at"),
                 ]
