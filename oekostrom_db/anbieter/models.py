@@ -8,7 +8,7 @@ MAX_PERCENTAGE = 100
 
 
 def is_percentage(value: float | None) -> None:
-    if value is None or (0 < value <= MAX_PERCENTAGE):
+    if value is None or (0 <= value <= MAX_PERCENTAGE):
         return
     raise ValidationError(
         f"Value must be between 0 and 100 or not set. Got '{value}'.",
