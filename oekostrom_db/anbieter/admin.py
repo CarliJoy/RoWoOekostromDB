@@ -138,6 +138,7 @@ class AnbieterAdmin(admin.ModelAdmin):
         "has_mutter",
         "status",
         "homepage_url",
+        "mail",
         "ee_only",
         "additional",
         "independent",
@@ -244,6 +245,7 @@ class AnbieterAdmin(admin.ModelAdmin):
                     "active",
                     "german_wide",
                     "mutter",
+                    "sells_from",
                     "status_ro",
                     ("last_updated", "created_at"),
                 ]
@@ -286,6 +288,7 @@ class AnbieterAdmin(admin.ModelAdmin):
                     "unabhaengigkeit",
                     "money_for_ee_only",
                     "begruendung",
+                    "begruendung_extern",
                 ]
             },
         ),

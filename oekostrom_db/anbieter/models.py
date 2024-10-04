@@ -195,9 +195,20 @@ class Anbieter(AnbieterBase):
     mutter = models.ForeignKey(
         "Anbieter",
         on_delete=models.SET_NULL,
+        db_default=None,
         null=True,
         blank=True,
         verbose_name="Mutter Firma",
+        related_name="children",
+    )
+    sells_from = models.ForeignKey(
+        "Anbieter",
+        on_delete=models.SET_NULL,
+        db_default=None,
+        null=True,
+        blank=True,
+        verbose_name="Verkauft Strom von",
+        related_name="sellers",
     )
     ee_anteil = models.PositiveSmallIntegerField(
         null=True,
@@ -253,8 +264,13 @@ class Anbieter(AnbieterBase):
     )
     begruendung = models.TextField(
         blank=True,
-        verbose_name="Begründung",
-        help_text="Kurz Begründung warum Kriterien ausgewählt wurden. Wird veröffentlicht.",
+        verbose_name="Notiz/Begründung Intern",
+        help_text="Interne Begründung/Notizen zum Anbieter und deren Bewertung",
+    )
+    begruendung_extern = models.TextField(
+        blank=True,
+        verbose_name="Begründung für Homepage",
+        help_text="Zusatzbegründung für Bewertung für Homepage",
     )
     north_data = models.URLField(
         max_length=1024,
