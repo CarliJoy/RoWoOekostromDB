@@ -4,10 +4,7 @@ from urllib.parse import urlparse
 
 from django import forms
 from django.contrib import admin
-from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.widgets import AutocompleteSelect
-from django.db.models.expressions import Window
-from django.db.models.functions import RowNumber
 from django.http import HttpRequest
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -135,20 +132,11 @@ class AnbieterForm(forms.ModelForm):
         }
 
 
-class NumberedChangeList(ChangeList):
-    def get_queryset(self, request, exclude_parameters=None):
-        qs = super().get_queryset(request, exclude_parameters)
-        # add the row number with the same ordering as the original queryset
-        return qs.annotate(
-            row_number=Window(expression=RowNumber(), order_by=qs.query.order_by)
-        )
-
-
 @admin.register(Anbieter)
 class AnbieterAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     list_display = (
-        "running_number",
+        "obj_id",
         "name",
         "active",
         "german_wide",
@@ -183,12 +171,9 @@ class AnbieterAdmin(admin.ModelAdmin):
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
 
-    def get_changelist(self, request, obj=None, **kwargs):  # noqa: ARG002
-        return NumberedChangeList
-
     @admin.display(description="#", ordering="id")
-    def running_number(self, obj: Anbieter) -> str:
-        return f"Lfn {obj.row_number:04} #{obj.id}"
+    def obj_id(self, obj: Anbieter) -> str:
+        return f"#{obj.id:04}"
 
     @admin.display(description="Homepage", ordering="homepage")
     def homepage_url(self, obj: Anbieter) -> str:
