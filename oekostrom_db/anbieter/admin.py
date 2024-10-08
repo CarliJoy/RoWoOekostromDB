@@ -1,9 +1,13 @@
 import logging
+from typing import Final
 from urllib.parse import urlparse
 
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.views.main import ChangeList
 from django.contrib.admin.widgets import AutocompleteSelect
+from django.db.models.expressions import Window
+from django.db.models.functions import RowNumber
 from django.http import HttpRequest
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -18,6 +22,8 @@ from .models import (
     Stromauskunft,
     Verivox,
 )
+
+NUMBER_ATTR: Final[str] = "_running_number"
 
 logger = logging.getLogger(__name__)
 
@@ -105,6 +111,7 @@ autocomplete_fields = (
     "stromauskunft",
     "verivox",
     "mutter",
+    "sells_from",
 )
 
 
@@ -128,14 +135,25 @@ class AnbieterForm(forms.ModelForm):
         }
 
 
+class NumberedChangeList(ChangeList):
+    def get_queryset(self, request, exclude_parameters=None):
+        qs = super().get_queryset(request, exclude_parameters)
+        # add the row number with the same ordering as the original queryset
+        return qs.annotate(
+            row_number=Window(expression=RowNumber(), order_by=qs.query.order_by)
+        )
+
+
 @admin.register(Anbieter)
 class AnbieterAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     list_display = (
+        "running_number",
         "name",
         "active",
         "german_wide",
         "has_mutter",
+        "has_sells_from",
         "status",
         "homepage_url",
         "mail",
@@ -146,8 +164,10 @@ class AnbieterAdmin(admin.ModelAdmin):
     )
     list_filter = [
         "active",
-        "status",
         "german_wide",
+        ("mutter", admin.EmptyFieldListFilter),
+        ("sells_from", admin.EmptyFieldListFilter),
+        "status",
         "nur_oeko",
         "zusaetzlichkeit",
         "unabhaengigkeit",
@@ -162,6 +182,13 @@ class AnbieterAdmin(admin.ModelAdmin):
 
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
+
+    def get_changelist(self, request, obj=None, **kwargs):  # noqa: ARG002
+        return NumberedChangeList
+
+    @admin.display(description="#", ordering="id")
+    def running_number(self, obj: Anbieter) -> str:
+        return f"Lfn {obj.row_number:04} #{obj.id}"
 
     @admin.display(description="Homepage", ordering="homepage")
     def homepage_url(self, obj: Anbieter) -> str:
@@ -179,6 +206,10 @@ class AnbieterAdmin(admin.ModelAdmin):
     @admin.display(description="Mutter", ordering="mutter", boolean=True)
     def has_mutter(self, obj: Anbieter) -> bool:
         return bool(obj.mutter)
+
+    @admin.display(description="Reseller", ordering="sells_from", boolean=True)
+    def has_sells_from(self, obj: Anbieter) -> bool:
+        return bool(obj.sells_from)
 
     @admin.display(description="100% Öko", ordering="nur_oeko", boolean=True)
     def ee_only(self, obj: Anbieter) -> bool:
