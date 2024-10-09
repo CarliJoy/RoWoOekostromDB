@@ -38,3 +38,11 @@
     </style>
 {% endblock %}
 
+{% block object-tools-items %}
+    {{ block.super }}
+    {% for name, link in extra_buttons.items %}
+    	<li>
+            <a class="button" href="{{ link }}">{{ name }}</a>
+        </li>
+    {% endfor %}
+{% endblock %}

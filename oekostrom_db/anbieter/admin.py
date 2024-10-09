@@ -1,13 +1,17 @@
+import json
 import logging
-from typing import Final
+from typing import Any, Final
 from urllib.parse import urlparse
 
 from django import forms
 from django.contrib import admin
+from django.contrib.admin.utils import unquote
 from django.contrib.admin.widgets import AutocompleteSelect
-from django.http import HttpRequest
+from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from jinja2 import Template as JinjaTemplate
 
 from .models import (
     STATUS_CHOICES,
@@ -17,12 +21,85 @@ from .models import (
     OkPower,
     Rowo2019,
     Stromauskunft,
+    Template,
+    TemplateNames,
     Verivox,
 )
 
 NUMBER_ATTR: Final[str] = "_running_number"
 
 logger = logging.getLogger(__name__)
+
+
+class RenderException(Exception):
+    def __init__(self, anbieter: Anbieter, exc: Exception) -> None:
+        self._anbieter = anbieter
+        self.exc = exc
+        super().__init__(
+            f"Failed to render template for {anbieter.name}: {type(self.exc).__name__}: {self.exc}"
+        )
+
+
+def get_homepage_export_data(template: str) -> list[dict[str, str | list[str]]]:
+    data: dict[str, str | list[str]] = []
+
+    for obj in Anbieter.objects.filter(active=True).order_by("name"):
+        # Get related names from AnbieterNames
+        related_names = obj.names.all().values_list("name", flat=True)
+
+        # Render the Jinja2 template content using current Anbieter as context
+        context = {"obj": obj}
+        jinja_template = JinjaTemplate(template)
+        try:
+            rendered_content = jinja_template.render(context)
+        except Exception as e:
+            raise RenderException(anbieter=obj, exc=e)
+
+        # Construct the JSON data
+        data.append(
+            {
+                "title": obj.name,
+                "id": obj.slug_id,
+                "names": list(related_names),
+                "content": rendered_content,
+            }
+        )
+    return data
+
+
+@admin.register(Template)
+class TemplateAdmin(admin.ModelAdmin):
+    list_display = ["name"]
+
+    change_form_template = "admin/template_change_form.html"
+
+    def has_delete_permission(self, request: HttpRequest, obj: Template | None = None):  # noqa ARG002
+        return False
+
+    def render_change_form(  # noqa: PLR0913
+        self,
+        request: HttpRequest,
+        context: dict[str, Any],
+        add: bool = False,
+        change: bool = False,
+        form_url: str = "",
+        obj: Template = None,
+    ) -> HttpResponse:
+        if change:
+            context["template_previews"] = []
+            if object_id := context.get("object_id"):
+                obj: Template = self.get_object(request, unquote(object_id))
+                if obj.name == TemplateNames.HOMEPAGE_TEXT_EXPORT:
+                    try:
+                        context["template_previews"] = get_homepage_export_data(
+                            obj.template
+                        )
+                    except RenderException as e:
+                        self.message_user(request, message=str(e), level="error")
+                    context["show_save_and_continue"] = True
+                    context["show_save_and_add_another"] = False
+                    context["show_save"] = False
+        return super().render_change_form(request, context, add, change, form_url)
 
 
 @admin.register(OkPower, Oekotest, Rowo2019, Stromauskunft, Verivox)
@@ -170,6 +247,51 @@ class AnbieterAdmin(admin.ModelAdmin):
 
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
+
+    actions = ["export_for_homepage"]
+
+    # Add custom URL and buttons
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "export-homepage/",
+                self.export_for_homepage_view,
+                name="export_homepage",
+            ),
+        ]
+        return custom_urls + urls
+
+    def export_for_homepage_view(self, request: HttpRequest) -> HttpResponse:
+        # Retrieve the template for "HOMEPAGE_TEXT_EXPORT"
+        try:
+            homepage_template = Template.objects.get(
+                name=TemplateNames.HOMEPAGE_TEXT_EXPORT
+            )
+        except Template.DoesNotExist:
+            self.message_user(
+                request, "Homepage export template not found.", level="error"
+            )
+            return HttpResponseRedirect(reverse("admin:anbieter_anbieter_changelist"))
+
+        data = get_homepage_export_data(homepage_template.template)
+
+        # Convert the data to JSON
+        response_content = json.dumps(data, indent=4)
+
+        # Create the HTTP response with the JSON content as a file download
+        response = HttpResponse(response_content, content_type="application/json")
+        response["Content-Disposition"] = "attachment; filename=anbieter_export.json"
+
+        return response
+
+    # Add the export button to the admin interface
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["extra_buttons"] = {
+            "Export for Homepage": reverse("admin:export_homepage")
+        }
+        return super().changelist_view(request, extra_context=extra_context)
 
     @admin.display(description="#", ordering="id")
     def obj_id(self, obj: Anbieter) -> str:
@@ -330,7 +452,7 @@ class AnbieterAdmin(admin.ModelAdmin):
     ) -> None:
         super().save_model(request, obj, form, change)
         # clean should take care that name isn't used already
-        if obj.name not in obj.anbietername_set.values_list("name", flat=True):
+        if obj.name not in obj.names.values_list("name", flat=True):
             AnbieterName.objects.update_or_create(name=obj.name, anbieter=obj)
 
     def has_delete_permission(self, request, obj=None):  # noqa ARG002

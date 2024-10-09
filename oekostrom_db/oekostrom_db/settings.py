@@ -37,6 +37,8 @@ def to_list(values: str | list[str]) -> list[str]:
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+# needs to be higher then the number of anbieter
+DATA_UPLOAD_MAX_NUMBER_FIELDS = 3000
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/

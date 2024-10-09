@@ -1,8 +1,13 @@
+from collections.abc import Iterable
+from functools import cached_property
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.functions import Now
+from django.utils.functional import classproperty
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
+from django.utils.text import slugify
 
 MAX_PERCENTAGE = 100
 
@@ -161,6 +166,7 @@ STATUS_CHOICES = {
 
 
 class Anbieter(AnbieterBase):
+    slug_id = models.SlugField(unique=True, default=None, max_length=255)
     active = models.BooleanField(
         db_default=True, default=True, help_text="Gibt es den Anbieter noch?"
     )
@@ -270,7 +276,7 @@ class Anbieter(AnbieterBase):
     begruendung_extern = models.TextField(
         blank=True,
         verbose_name="Begründung für Homepage",
-        help_text="Zusatzbegründung für Bewertung für Homepage",
+        help_text=("Zusatzbegründung für Bewertung für Homepage. "),
     )
     north_data = models.URLField(
         max_length=1024,
@@ -295,6 +301,11 @@ class Anbieter(AnbieterBase):
     class Meta:
         verbose_name_plural = "Anbieter"
 
+    def save(self, *args, **kwargs) -> None:
+        if not self.slug_id:
+            self.slug_id = slugify(self.name)
+        super().save(*args, **kwargs)
+
     def clean(self):
         """
         Ensure no duplicate names are created
@@ -309,10 +320,68 @@ class Anbieter(AnbieterBase):
                 f"{self.name} ist bereits für {obj.anbieter} in Benutzung."
             )
 
+    @classproperty
+    def kriterien_fields(cls) -> tuple[str, ...]:
+        return (
+            "nur_oeko",
+            "unabhaengigkeit",
+            "zusaetzlichkeit",
+            "money_for_ee_only",
+        )
+
+    @cached_property
+    def parent(self) -> "Anbieter":
+        if self.mutter is not None:
+            return self.mutter.parent
+        if self.sells_from is not None:
+            return self.sells_from.parent
+        return self
+
+    @property
+    def has_parent(self) -> bool:
+        return self.parent != self
+
+    @property
+    def ist_empfohlen(self) -> bool:
+        # empfehle erstmal alles was nicht nicht empfohlen ist
+        anbieter = self.parent
+        for field in self.kriterien_fields:
+            if getattr(anbieter, field) is False:
+                return False
+        return True
+
+    def get_nicht_erfuellte_kriterien_iter(self) -> Iterable[str]:
+        anbieter = self.parent
+        for field in self.kriterien_fields:
+            if getattr(anbieter, field) is False:
+                yield self._meta.get_field(field).help_text
+
+    @property
+    def nicht_erfuellte_kriterien(self) -> tuple[str, ...]:
+        return tuple(self.get_nicht_erfuellte_kriterien_iter())
+
+    @property
+    def homepage_notizen(self) -> tuple[str, ...]:
+        if not self.has_parent:
+            # no parent
+            if self.begruendung_extern:
+                return (self.begruendung_extern,)
+            return tuple()
+
+        anbieter = self.parent
+        result: list[str] = []
+        if anbieter.begruendung_extern:
+            result.append(f"{anbieter}: {anbieter.begruendung_extern}")
+        if self.begruendung_extern:
+            result.append(f"{self}: {anbieter.begruendung_extern}")
+        return tuple(result)
+
 
 class AnbieterName(models.Model):
     name = models.CharField(max_length=255, unique=True)
-    anbieter = models.ForeignKey(Anbieter, on_delete=models.PROTECT)
+    anbieter = models.ForeignKey(
+        Anbieter, on_delete=models.PROTECT, related_name="names"
+    )
     rowo_2019 = models.ForeignKey(
         Rowo2019, on_delete=models.SET_NULL, null=True, blank=True, db_default=None
     )
@@ -334,3 +403,17 @@ class AnbieterName(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class TemplateNames(models.TextChoices):
+    HOMEPAGE_TEXT_EXPORT = "HP_EXPORT", "Homepage Text"
+
+
+class Template(models.Model):
+    name = models.CharField(
+        unique=True, max_length=64, choices=TemplateNames, blank=False
+    )
+    template = models.TextField()
+
+    def __str__(self) -> str:
+        return TemplateNames(self.name).label
