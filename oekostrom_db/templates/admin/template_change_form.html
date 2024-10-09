@@ -1,5 +1,12 @@
 {% extends "admin/change_form.html" %}
 
+{% block object-tools-items %}
+	{{ block.super }}
+    <li>
+        <a class="button" href="{% url 'admin:export_homepage' %}">Export for Homepage</a>
+    </li>
+{% endblock %}
+
 {% block content %}
     {{ block.super }}
     <h3>Template Preview</h3>
@@ -10,3 +17,4 @@
     	</p>
     {% endfor %}
 {% endblock %}
+
