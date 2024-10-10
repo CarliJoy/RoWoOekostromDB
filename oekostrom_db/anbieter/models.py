@@ -276,7 +276,7 @@ class Anbieter(AnbieterBase):
     begruendung_extern = models.TextField(
         blank=True,
         verbose_name="Begründung für Homepage",
-        help_text=("Zusatzbegründung für Bewertung für Homepage. "),
+        help_text="Zusatzbegründung für Bewertung für Homepage",
     )
     north_data = models.URLField(
         max_length=1024,
