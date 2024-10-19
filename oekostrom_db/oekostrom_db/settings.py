@@ -172,12 +172,18 @@ USE_I18N = True
 
 USE_TZ = True
 
+ROWO_MIRRORING = False
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = "static/"
+APP_STATIC_ROOT = BASE_DIR / "static"
 STATIC_ROOT = BASE_DIR.parent / "static"
+
+STATICFILES_DIRS = [
+    APP_STATIC_ROOT,
+]
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field

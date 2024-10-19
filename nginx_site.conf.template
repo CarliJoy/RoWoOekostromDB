@@ -2,6 +2,18 @@ server {
     listen       ${NGINX_PORT};
     server_name  ${NGINX_HOST};
 
+    location /static {
+        root /home/app;
+    }
+
+    location /themes {
+        root /home/app/static;
+    }
+
+    location /favicon.ico {
+        root /home/app/static;
+    }
+
     location / {
         proxy_set_header Referer $http_referer;
         # do no include port to prevent csrf problems
@@ -14,12 +26,6 @@ server {
         proxy_pass   http://${NGINX_TARGET};
     }
 
-    location /static {
-        root /home/app;
-    }
 
-    location /favicon.ico {
-        root /home/app/static;
-    }
 
 }

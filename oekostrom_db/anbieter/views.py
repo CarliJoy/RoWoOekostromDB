@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import render
 
@@ -10,3 +11,12 @@ def startpage(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "anbieter/startpage.html", context)
+
+
+def survey(request: HttpRequest) -> HttpResponse:
+    context = {
+        "rowo_url": "/mirror" if settings.ROWO_MIRRORING else "/static",
+        "teaser": "Fragebogen für Ökostrom GmbH",
+    }
+
+    return render(request, "anbieter/survey.html", context)
