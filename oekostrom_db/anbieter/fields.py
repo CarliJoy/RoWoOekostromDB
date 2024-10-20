@@ -1,5 +1,6 @@
 from typing import Any
 
+from crispy_forms.bootstrap import AppendedText, InlineField
 from django.core.exceptions import ValidationError
 from django.db import models
 
@@ -34,6 +35,9 @@ class PercentField(models.DecimalField):
         kwargs.setdefault("validators", (is_percentage,))
         super().__init__(verbose_name=verbose_name, help_text=help_text, **kwargs)
 
+    def bootstrap_field(self, name: str) -> AppendedText:
+        return AppendedText(name, "%")
+
 
 class YesNoField(models.BooleanField):
     def __init__(
@@ -43,6 +47,9 @@ class YesNoField(models.BooleanField):
         kwargs.setdefault("null", True)
         kwargs.setdefault("choices", JA_NEIN_CHOICE)
         super().__init__(verbose_name=verbose_name, help_text=help_text, **kwargs)
+
+    def bootstrap_field(self, name: str) -> AppendedText:
+        return InlineField(name)
 
 
 class TextField(models.TextField):

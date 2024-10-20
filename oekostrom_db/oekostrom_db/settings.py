@@ -85,6 +85,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "django.forms",
     "anbieter",
+    "crispy_forms",
+    "crispy_bootstrap5",
 ]
 
 ASGI_APPLICATION = "oekostrom_db.asgi.application"
@@ -238,3 +240,6 @@ LOGGING = {
 }
 SESSION_COOKIE_AGE = 3600 * 24 * 30  # a month
 SESSION_SAVE_EVERY_REQUEST = True
+
+CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
+CRISPY_TEMPLATE_PACK = "bootstrap5"

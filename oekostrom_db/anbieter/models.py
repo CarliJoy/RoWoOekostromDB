@@ -6,6 +6,7 @@ from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.functions import Now
+from django.urls import reverse
 from django.utils.functional import classproperty
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
@@ -423,7 +424,7 @@ class Header:
         self.name = name
 
     def __html__(self) -> str:
-        return f"<h3>{self.name}</h3>"
+        return f"<h2 class='kampagne-full-forderung-headline'>{self.name}</h2>"
 
 
 class Label:
@@ -435,18 +436,28 @@ class Label:
 
 
 class Section:
-    def __init__(self, name: str) -> None:
+    def __init__(self, name: str, description: str = "") -> None:
         self.name = name
+        self.description = description
 
     def __html__(self) -> str:
-        return f"<div class='section'>{self.name}</div>"
+        desc = ""
+        if self.description:
+            desc = f"<div class='forderung-text'>{self.description}</div>"
+        return (
+            f"<div class='kampagne-full-forderung-wrapper mobile-padding-1 mb-3'>"
+            f"<div class='forderung-nummer'><span>?</span></div>"
+            f"<div class='forderung-titel'>{self.name}</div>{desc}</div>"
+        )
 
 
 class KeepOrderModelBase(ModelBase):
     def __new__(
         cls, name: str, bases: list[type], attrs: dict[str, Any], **kwargs
     ) -> type:
-        field_order = tuple(k for k in attrs if not k.startswith("_"))
+        field_order = tuple(
+            k for k, v in attrs.items() if not k.startswith("_") and not callable(v)
+        )
         klass = super().__new__(cls, name, bases, attrs, **kwargs)
         klass._field_order = field_order
         return klass
@@ -549,10 +560,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     # Strom und Erzeugungsanlagen
     header_energy = Header("Strom und Erzeugungsanlagen")
 
-    section_mix = Section("Strommix letztes Kalenderjahr")
-    label_mix = Label(
+    section_mix = Section(
+        "Strommix letztes Kalenderjahr",
         "Mit welchem Strommix haben Sie Ihre Kund*innen im letzten Kalenderjahr beliefert? "
-        "Bitte geben Sie jeweils den Anteil in Prozent an."
+        "Bitte geben Sie jeweils den Anteil in Prozent an.",
     )
     hydro_power = PercentField("Wasserkraft")
     solar_power = PercentField("Solarenergie")
@@ -565,8 +576,9 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         help_text="Erläuterungen zu 'Sonstiges Energiequellen' im Strommix, falls zutreffend.",
     )
 
-    section_source = Section("Bezugsquellen")
-    label_source = Label("Worüber beziehen Sie Strom (jeweils in Prozent)?")
+    section_source = Section(
+        "Bezugsquellen", "Worüber beziehen Sie Strom (jeweils in Prozent)?"
+    )
     power_from_exchange = PercentField("Strombörse")
     power_from_plants = PercentField(
         "direkt aus Erzeugungsanlagen",
@@ -575,19 +587,19 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     power_from_traders = PercentField("andere Stromhändler")
     power_from_own_plants = PercentField("eigenen Anlagen")
 
-    section_plant_location = Section("Standort der Anlagen")
-    label_plant_location = Label(
+    section_plant_location = Section(
+        "Standort der Anlagen",
         "Wie viel des von Ihnen im letzten Kalenderjahr verkauften Stroms stammte "
-        "aus Anlagen mit dem Standort"
+        "aus Anlagen mit dem Standort",
     )
     regional_plants_percent = PercentField("ihre Region")
     national_plants_percent = PercentField("Deutschland")
     international_plants_percent = PercentField("Europäisches Ausland")
 
-    section_plant_age = Section("Anlagenalter")
-    label_plant_age = Label(
+    section_plant_age = Section(
+        "Anlagenalter",
         "Wie viel Prozent des von Ihnen im letzten Kalenderjahr verkauften Stroms "
-        "stammt aus Anlagen folgenden Alters?"
+        "stammt aus Anlagen folgenden Alters?",
     )
     plant_age_0_3 = PercentField("bis 3 Jahre")
     plant_age_4_6 = PercentField("4-6 Jahre")
@@ -596,10 +608,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     plant_age_16_20 = PercentField("16-20 Jahre")
     plant_age_21_plus = PercentField("über 21 Jahre")
 
-    section_plant_ee_saved = Section("EEG Anlagen Altanlagen")
-    label_plant_ee_saved = Label(
+    section_plant_ee_saved = Section(
+        "EEG Anlagen Altanlagen",
         "Wie viel Prozent des von Ihnen im letzten Kalenderjahr verkauften Stroms "
-        "stammt jeweils aus Anlagen die aus der EGG Förderung gefallen sind, welche"
+        "stammt jeweils aus Anlagen die aus der EGG Förderung gefallen sind, welche",
     )
 
     plant_ee_saved_owned = PercentField(
@@ -617,14 +629,24 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         ),
     )
 
-    section_file_upload = Section("Stromzukauf von Fremdanlagen")
-    label_file_upload = Label(
-        "Wenn Sie Strom von Erzeugungsanlagen zukaufen: "
-        "Aus welchen Erzeugungsanlagen haben Sie im letzten Kalenderjahr Strom bezogen? "
-        "Bitte schicken Sie uns eine Tabelle mit folgenden Informationen (im Excel- oder LibreOffice-Format): "
-        "Name, Besitzer, Adresse + Kontakt des Besitzers, Eigentümerstruktur, Anlagen Typ, Leistung, Standort, "
-        "Datum Inbetriebnahme, wie viel KWh Sie von der Anlage bezogen haben, selbst initiiert/gefördert?, "
-        "Stromerzeugungs-Anlagen-Kennzeichnung der BeNetzA."
+    section_file_upload = Section(
+        "Stromzukauf von Fremdanlagen",
+        "<p>Wenn Sie Strom von Erzeugungsanlagen zukaufen: "
+        "Aus welchen Erzeugungsanlagen haben Sie im letzten Kalenderjahr Strom bezogen?</p>"
+        "<p>Bitte schicken Sie uns eine Tabelle mit folgenden Informationen (im Excel- oder LibreOffice-Format):</p>"
+        "<ul>"
+        "<li>Name</li>"
+        "<li>Besitzer</li>"
+        "<li>Adresse + Kontakt des Besitzers</li>"
+        "<li>Eigentümerstruktur</li>"
+        "<li>Anlagen Typ</li>"
+        "<li>Leistung</li>"
+        "<li>Standort</li>"
+        "<li>Datum Inbetriebnahme,</li>"
+        "<li>wie viel KWh Sie von der Anlage bezogen haben</li>"
+        "<li>selbst initiiert/gefördert?, </li>"
+        "<li>Stromerzeugungs-Anlagen-Kennzeichnung der BeNetzA.</li>"
+        "</ul>",
     )
     power_plants_file = models.FileField(
         upload_to="uploads/",
@@ -710,8 +732,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         help_text="Wie hoch ist der Förderbetrag in Ct/kWh?",
     )
 
-    section_support_spending = Section("Verwendung des Förderbeitrages")
-    section_support_label = Label("Wofür")
+    section_support_spending = Section(
+        "Verwendung des Förderbeitrages",
+        "Wofür wird der oben genannte Förderbetrag verwendet?",
+    )
     support_spending_new_plants = YesNoField(
         verbose_name="Neuanlagen", help_text="Verwendung für den Bau neuer Anlagen?"
     )
@@ -739,10 +763,11 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     )
 
     # Zum Schluss
-    header_final = Header("Unternehmensstatistiken")
-    label_final = Label(
+    header_final = Header("Allgemeines zum Unternehmen")
+    section_final = Section(
+        "Statistiken",
         "Bitte helfen sie unseren Leser*innen ein genaueres Bild von ihrem Unternehmen zu bekommen."
-        "Alle Angaben sind natürlich freiwillig."
+        "Alle Angaben sind natürlich freiwillig.",
     )
     num_employees = IntegerField(
         verbose_name="Mitarbeiteranzahl",
@@ -765,3 +790,6 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     def __str__(self) -> str:
         # TODO Edit with Anbieter Name
         return f"Umfrage ({self.id})"
+
+    def get_absolute_url(self) -> str:
+        return reverse("survey")  # kwargs={"pk": self.pk})
