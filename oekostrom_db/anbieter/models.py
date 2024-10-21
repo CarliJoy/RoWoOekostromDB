@@ -464,23 +464,37 @@ class KeepOrderModelBase(ModelBase):
 
 
 class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
+    label_start = Label(
+        '<div class="alert alert-info mt-3" role="alert">'
+        "Bitte vergessen Sie nicht am Ende zu speichern. <br />"
+        "Sie können dies auch mit Zwischenständen tun."
+        "</div>"
+    )
     # Organisationsstruktur und Verflechtungen
     header_orga = Header("Organisationsstruktur und Verflechtungen")
 
-    section_service = Section("Versorgungsgebiet")
-    service_germany = YesNoField(
-        verbose_name="Bundesweite Stromversorgung",
-        help_text="Liefern sie Strom für Haushaltskunden ins gesamte Bundesgebiet?",
+    section_service = Section(
+        "Versorgungsgebiet",
+        (
+            "Liefern sie Strom für Haushaltskunden ins gesamte Bundesgebiet oder "
+            "nur in ein begrenzetes Gebiet?"
+        ),
     )
+    service_germany = YesNoField("Bundesweit")
     service_area = TextField(
         verbose_name="Gebiet Stromversorgung",
         help_text=(
             "Falls sie nur bestimmte Gebiete beliefern, geben Sie bitte hier eine Liste "
-            "der PLZ an die sie beliefern."
+            "der PLZ an, welche sie beliefern."
         ),
     )
 
-    section_orga = Section("Organisationsstruktur")
+    section_name = Section(
+        "Identifikation", ("Welchen Namen, Rechtsform und Handelsregisternummer")
+    )
+    name = models.CharField(
+        max_length=256, verbose_name="Vollständiger Name", default="Ökostrom GmbH"
+    )
     legal_form = models.CharField(
         max_length=20,
         choices=[
@@ -509,48 +523,64 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         verbose_name="Rechtsform",
         help_text="Rechtsform ihres Unternehmens.",
     )
-    ownership_structure = TextField(
-        verbose_name="Eigentümer- und Organisationsstruktur",
-        help_text=(
+    register_id = models.CharField(
+        max_length=256,
+        verbose_name="Handelsregisternummer",
+        help_text="Handelsregisternummer falls zutreffend",
+        blank=True,
+    )
+
+    section_orga = Section(
+        "Organisationsstruktur",
+        (
             "Eigentümer- und Organisationsstruktur Ihres Unternehmens "
             "(z.B. Anteilseigner, Hauptaktionär*in, Leitung des operativen Geschäfts)"
         ),
+    )
+    ownership_structure = TextField(
+        verbose_name="Eigentümer- und Organisationsstruktur",
     )
     company_connections = TextField(
         verbose_name="Unternehmensverbindungen",
         help_text="Mit welchen anderen Unternehmen sind Sie ggf. verbunden (quer und horizontal)?",
     )
 
-    section_no_ee_connection = Section("Verbindungen zu fossilen oder Atomkonzernen")
-    sells_fossil_or_nuclear_energy = YesNoField(
-        verbose_name="Strom aus fossiler oder Atomenergie",
-        help_text=(
+    section_no_ee_connection = Section(
+        "Verbindungen zu fossilen oder Atomkonzernen",
+        (
             "Bezieht und verkauft Ihr Unternehmen oder ein mit Ihnen verbundenes Unternehmen "
             "Strom aus fossilen Energiequellen oder Atomenergie?"
         ),
     )
+    sells_fossil_or_nuclear_energy = YesNoField(
+        verbose_name="Verbindung zu fossiler oder Atomenergie",
+    )
     explanation_fossil_nuclear = TextField(
-        verbose_name="Erläuterung zu fossilen/Atomstrom",
+        verbose_name="Erläuterung",
         help_text="Erläuterungen zu Strom aus fossilen/Atomenergie, falls zutreffend.",
     )
 
-    section_commodities = Section("Rohstoffhandel")
-    trades_commodities = YesNoField(
-        verbose_name="fossiler Rohstoffhandel",
-        help_text=(
-            "Handelt Ihr Unternehmen oder ein mit Ihnen verbundenes Unternehmen mit"
+    section_commodities = Section(
+        "Rohstoffhandel",
+        (
+            "Handelt Ihr Unternehmen oder ein mit Ihnen verbundenes Unternehmen mit "
             "Öl, Kohle, Atomtechnologien und/oder fossilem Gas?"
         ),
+    )
+    trades_commodities = YesNoField(
+        verbose_name="fossiler Rohstoffhandel",
     )
     commodities_extent = TextField(
         verbose_name="Umfang des Rohstoffhandels",
         help_text="In welchem Umfang handelt Ihr Unternehmen mit diesen Rohstoffen?",
     )
 
-    section_renewable_gas_invest = Label("Erneuerbares Gas Investitionen")
+    section_renewable_gas_invest = Section(
+        "Investitionen Erneuerbares Gas",
+        "Investiert Ihr Unternehmen in dem Aufbau von erneuerbarer Gas-Infrastruktur?",
+    )
     invests_renewable_gas = YesNoField(
         verbose_name="Investitionen in erneuerbare Gas-Infrastruktur",
-        help_text="Investiert Ihr Unternehmen in dem Aufbau von erneuerbarer Gas-Infrastruktur?",
     )
     explanation_investments = TextField(
         verbose_name="Erläuterungen zu Investitionen",
@@ -562,8 +592,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     section_mix = Section(
         "Strommix letztes Kalenderjahr",
-        "Mit welchem Strommix haben Sie Ihre Kund*innen im letzten Kalenderjahr beliefert? "
-        "Bitte geben Sie jeweils den Anteil in Prozent an.",
+        (
+            "Mit welchem Strommix haben Sie Ihre Kund*innen im letzten Kalenderjahr beliefert? "
+            "Bitte geben Sie jeweils den Anteil in Prozent an."
+        ),
     )
     hydro_power = PercentField("Wasserkraft")
     solar_power = PercentField("Solarenergie")
@@ -589,8 +621,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     section_plant_location = Section(
         "Standort der Anlagen",
-        "Wie viel des von Ihnen im letzten Kalenderjahr verkauften Stroms stammte "
-        "aus Anlagen mit dem Standort",
+        (
+            "Wie viel des von Ihnen im letzten Kalenderjahr verkauften Stroms stammte "
+            "aus Anlagen mit dem Standort:"
+        ),
     )
     regional_plants_percent = PercentField("ihre Region")
     national_plants_percent = PercentField("Deutschland")
@@ -598,8 +632,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     section_plant_age = Section(
         "Anlagenalter",
-        "Wie viel Prozent des von Ihnen im letzten Kalenderjahr verkauften Stroms "
-        "stammt aus Anlagen folgenden Alters?",
+        (
+            "Wie viel Prozent des von Ihnen im letzten Kalenderjahr verkauften Stroms "
+            "stammt aus Anlagen folgenden Alters?"
+        ),
     )
     plant_age_0_3 = PercentField("bis 3 Jahre")
     plant_age_4_6 = PercentField("4-6 Jahre")
@@ -610,8 +646,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     section_plant_ee_saved = Section(
         "EEG Anlagen Altanlagen",
-        "Wie viel Prozent des von Ihnen im letzten Kalenderjahr verkauften Stroms "
-        "stammt jeweils aus Anlagen die aus der EGG Förderung gefallen sind, welche",
+        (
+            "Wie viel Prozent des von Ihnen im letzten Kalenderjahr verkauften Stroms "
+            "stammt jeweils aus Anlagen die aus der EGG Förderung gefallen sind, welche"
+        ),
     )
 
     plant_ee_saved_owned = PercentField(
@@ -631,22 +669,25 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     section_file_upload = Section(
         "Stromzukauf von Fremdanlagen",
-        "<p>Wenn Sie Strom von Erzeugungsanlagen zukaufen: "
-        "Aus welchen Erzeugungsanlagen haben Sie im letzten Kalenderjahr Strom bezogen?</p>"
-        "<p>Bitte schicken Sie uns eine Tabelle mit folgenden Informationen (im Excel- oder LibreOffice-Format):</p>"
-        "<ul>"
-        "<li>Name</li>"
-        "<li>Besitzer</li>"
-        "<li>Adresse + Kontakt des Besitzers</li>"
-        "<li>Eigentümerstruktur</li>"
-        "<li>Anlagen Typ</li>"
-        "<li>Leistung</li>"
-        "<li>Standort</li>"
-        "<li>Datum Inbetriebnahme,</li>"
-        "<li>wie viel KWh Sie von der Anlage bezogen haben</li>"
-        "<li>selbst initiiert/gefördert?, </li>"
-        "<li>Stromerzeugungs-Anlagen-Kennzeichnung der BeNetzA.</li>"
-        "</ul>",
+        (
+            "<p>Wenn Sie Strom von Erzeugungsanlagen zukaufen: "
+            "Aus welchen Erzeugungsanlagen haben Sie im letzten Kalenderjahr Strom bezogen?</p>"
+            "<p>Bitte schicken Sie uns eine Tabelle mit folgenden Informationen"
+            "   (im Excel- oder LibreOffice-Format):</p>"
+            "<ul>"
+            "<li>Name</li>"
+            "<li>Besitzer</li>"
+            "<li>Adresse + Kontakt des Besitzers</li>"
+            "<li>Eigentümerstruktur</li>"
+            "<li>Anlagen Typ</li>"
+            "<li>Leistung</li>"
+            "<li>Standort</li>"
+            "<li>Datum Inbetriebnahme,</li>"
+            "<li>wie viel KWh Sie von der Anlage bezogen haben</li>"
+            "<li>selbst initiiert/gefördert?, </li>"
+            "<li>Stromerzeugungs-Anlagen-Kennzeichnung der BeNetzA.</li>"
+            "</ul>"
+        ),
     )
     power_plants_file = models.FileField(
         upload_to="uploads/",
@@ -662,74 +703,79 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     # Förderung der Energiewende
     header_promotion = Header("Förderung der Energiewende")
 
-    section_new_plant = Section("Neuanlagen")
-    built_renewable_plants = YesNoField(
-        verbose_name="Neuanlagen errichtet",
-        help_text="Haben Sie in den letzten 5 Jahren Erneuerbare Energien-Anlagen errichtet?",
+    section_new_plant = Section(
+        "Neuanlagen",
+        "Haben Sie in den letzten 5 Jahren Erneuerbare Energien-Anlagen errichtet?",
     )
+    built_renewable_plants = YesNoField("Neuanlagen errichtet")
     built_plant_count = IntegerField(
         verbose_name="Anzahl", help_text="Anzahl der errichteten Neuanlagen"
     )
     built_plant_capacity_kw = IntegerField(
         verbose_name="Installierte Leistung",
         unit="kW",
-        help_text="Installierte Leistung der errichteten Anlagen in Kilowatt",
+        help_text="Installierte Leistung der errichteten Anlagen",
     )
 
-    section_plant_planned = Section("geplante Anlangen")
-    planned_renewable_plants = YesNoField(
-        verbose_name="Erneuerbare Energien-Anlagen geplant",
-        help_text="Haben Sie in den letzten 5 Jahren Erneuerbare Energien-Anlagen geplant?",
+    section_plant_planned = Section(
+        "geplante Anlangen",
+        "Haben Sie in den letzten 5 Jahren Erneuerbare Energien-Anlagen geplant?",
     )
+    planned_renewable_plants = YesNoField("Geplante Anlagen")
     planned_plant_count = IntegerField(
         verbose_name="Anzahl", help_text="Anzahl der geplanten Anlagen"
     )
     planned_plant_capacity_kw = IntegerField(
         verbose_name="Leistung",
         unit="kW",
-        help_text="Installierte Leistung der geplanten Anlagen in Kilowatt",
+        help_text="Installierte Leistung der geplanten Anlagen",
     )
 
-    section_investment = Section("Investitionen")
-    revenue_investment_percent = PercentField(
-        verbose_name="Prozent des Umsatzes für Anlagen",
-        help_text=(
+    section_investment = Section(
+        "Anlagen Investitionen",
+        (
             "Wie viel Prozent Ihres Umsatzes haben Sie in den letzten 5 Jahren zur "
             "Errichtung und Planung von Anlagen verwendet?"
         ),
     )
-    invests_in_renewable_tech = YesNoField(
-        verbose_name="Investitionen in erneuerbare Technologien",
-        help_text=(
+    revenue_investment_percent = PercentField(
+        verbose_name="Anteil an Umsatz",
+    )
+
+    section_tech_invest = Section(
+        "Technologie Investitionen",
+        (
             "Investieren Sie in Technologien, die den Verbrauch und die Erzeugung "
             "von Erneuerbaren Energien zusammenbringen, z.B. Speicher oder SmartGrids?"
         ),
     )
+    invests_in_renewable_tech = YesNoField("Investitionen")
     investment_details = TextField(
         verbose_name="Details der Investitionen",
-        help_text="Erläutern Sie, wie Sie in Technologien investieren.",
+        help_text="Erläutern Sie, wie und worin sie investieren.",
     )
 
-    section_customer_support = Section("Unterstützung von Kund*innen")
+    section_customer_support = Section(
+        "Unterstützung von Kund*innen",
+        "Unterstützen Sie Kund*innen bei der Anschaffung von PV, Wärmepumpen oder ähnlichen Anlagen?",
+    )
     supports_customers_with_renewable = YesNoField(
-        verbose_name="Unterstützung der Kund*innen bei PV oder Wärmepumpen",
-        help_text="Unterstützen Sie Kund*innen bei der Anschaffung von PV, Wärmepumpen oder ähnlichen Anlagen?",
+        verbose_name="Unterstützung Anschaffung",
     )
     support_customer_details = TextField(
         verbose_name="Details",
-        help_text="Falls ja, erläutern Sie, wie die Unterstützung erfolgt.",
+        help_text="Falls ja, erläutern Sie, wie und wofür die Unterstützung erfolgt.",
     )
 
-    section_energy_transition_support = Section("Förderbeitrag zur Energiewende")
-    supports_energy_transition_per_kwh = YesNoField(
-        verbose_name="Förderbeitrag pro kWh",
-        help_text="Fördern Sie die Energiewende mit einem festen Betrag pro kWh?",
+    section_energy_transition_support = Section(
+        "Förderbeitrag zur Energiewende",
+        "Fördern Sie die Energiewende mit einem festen Betrag pro kWh?",
     )
+    supports_energy_transition_per_kwh = YesNoField("Erhebung Förderbeitrag")
 
     support_per_kwh = FloatField(
-        verbose_name="Förderbetrag",
+        verbose_name="Höhe Förderbetrag",
         unit="€-ct/kWh",
-        help_text="Wie hoch ist der Förderbetrag in Ct/kWh?",
     )
 
     section_support_spending = Section(
@@ -756,18 +802,22 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         help_text="Optionale weitere Ausführungen zur Verwendung des Förderbeitrags.",
     )
 
-    section_support_other = Section("Sonstige Förderung")
+    section_support_other = Section(
+        "Sonstige Förderung",
+        "Fördern Sie Energiewende durch sonstige weitere Maßnahmen?",
+    )
     support_other = TextField(
         "Sonstige Förderungen",
-        help_text="Fördern Sie Energiewende durch sonstige weitere Maßnahmen?",
     )
 
     # Zum Schluss
     header_final = Header("Allgemeines zum Unternehmen")
     section_final = Section(
         "Statistiken",
-        "Bitte helfen sie unseren Leser*innen ein genaueres Bild von ihrem Unternehmen zu bekommen."
-        "Alle Angaben sind natürlich freiwillig.",
+        (
+            "Bitte helfen sie unseren Leser*innen ein genaueres Bild von ihrem Unternehmen zu bekommen. "
+            "Alle Angaben sind natürlich freiwillig."
+        ),
     )
     num_employees = IntegerField(
         verbose_name="Mitarbeiteranzahl",
