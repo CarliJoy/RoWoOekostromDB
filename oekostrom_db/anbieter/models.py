@@ -490,7 +490,8 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     )
 
     section_name = Section(
-        "Identifikation", ("Welchen Namen, Rechtsform und Handelsregisternummer")
+        "Identifikation",
+        "Welchen Namen, Rechtsform und Handelsregisternummer hat ihr Unternehmen?",
     )
     name = models.CharField(
         max_length=256, verbose_name="Vollständiger Name", default="Ökostrom GmbH"

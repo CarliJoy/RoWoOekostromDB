@@ -56,6 +56,7 @@ class SurveyView(UpdateView):
         context = super().get_context_data(**kwargs)
         context |= {
             "rowo_url": "/mirror" if settings.ROWO_MIRRORING else "/static",
+            "rowo_hp": "https://robinwood.de",
             "teaser": "Fragebogen für Ökostrom GmbH",
             # Get template errors to disappear
             "tag": "div",
