@@ -7,21 +7,23 @@
     <meta name="MobileOptimized" content="width"/>
     <meta name="HandheldFriendly" content="true"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-    <style>div#sliding-popup, div#sliding-popup .eu-cookie-withdraw-banner, .eu-cookie-withdraw-tab {
-        background: #a2c516
-    }
-
-    div#sliding-popup.eu-cookie-withdraw-wrapper {
-        background: transparent;
-    }
-
-    #sliding-popup h1, #sliding-popup h2, #sliding-popup h3, #sliding-popup p, #sliding-popup label, #sliding-popup div, .eu-cookie-compliance-more-button, .eu-cookie-compliance-secondary-button, .eu-cookie-withdraw-tab {
-        color: #ffffff;
-    }
-
-    .eu-cookie-withdraw-tab {
-        border-color: #ffffff;
-    }</style>
+    <style>
+        /* Hide up down arrors number input */
+        /* Chrome, Safari, Edge, Opera */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+          -webkit-appearance: none;
+          margin: 0;
+        }
+        
+        /* Firefox */
+        input[type=number] {
+          -moz-appearance: textfield;
+        }
+        input[type=number] {
+            text-align: right;
+        }
+    </style>
     <link rel="icon" href="{{ rowo_url }}/sites/default/files/favicon_1_0_0.png" type="image/png"/>
 
     <title>Ökostrom Umfrage| ROBIN WOOD e.V.</title>
