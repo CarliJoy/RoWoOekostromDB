@@ -69,6 +69,8 @@ class State(StrEnum):
     unchanged = "unchanged"
     saved_with_warning = "saved_with_warning"
     error = "error"
+    view_only = "view_only"
+    view_old = "view_old"
 
 
 class StateLabels(dict[State, Alert]): ...

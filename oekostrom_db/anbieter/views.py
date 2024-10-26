@@ -30,7 +30,11 @@ def startpage(request: HttpRequest) -> HttpResponse:
     return render(request, "anbieter/startpage.html", context)
 
 
-def gen_survey_helper(form: ModelForm, state: State) -> FormHelper:  # noqa: ARG001
+def gen_survey_helper(
+    form: ModelForm,  # noqa: ARG001
+    state: State,
+    add_save_button: bool,
+) -> FormHelper:
     helper = FormHelper()
     helper.form_group_wrapper_class = "form-group"
     helper.form_class = "from form-horizontal"
@@ -52,7 +56,8 @@ def gen_survey_helper(form: ModelForm, state: State) -> FormHelper:  # noqa: ARG
                 layout_list.append(field.bootstrap_field(field_name))
             elif getattr(field, "editable", False):
                 layout_list.append(field_name)
-    layout_list.append(Row(Submit("Speichern", "Speichern", css_class="mb-5 mt-3")))
+    if add_save_button:
+        layout_list.append(Row(Submit("Speichern", "Speichern", css_class="mb-5 mt-3")))
     helper.add_layout(Layout(*layout_list))
     return helper
 
@@ -93,16 +98,24 @@ class SurveyView(UpdateView):
         super().__init__(*args, **kwargs)
         self.reset_form: bool = False
         self.state: State = State.start
+        self.view_mode: bool = False
+        self.rev: int | None = None
+
+    def setup(self, request: HttpRequest, *args, **kwargs) -> None:
+        super().setup(request, *args, **kwargs)
+        self.view_mode: bool = request.GET.get("view") is not None
+        if "rev" in request.GET:
+            self.rev = int(request.GET["rev"])
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        rev = ""
+        if self.view_mode:
+            rev = f"<small>Rev. {self.object.revision}/{self.survey_access.current_revision}</small>"
         context |= {
             "rowo_url": "/mirror" if settings.ROWO_MIRRORING else "/static",
             "rowo_hp": "https://robinwood.de",
-            "teaser": (
-                f"Ökostrom Fragebogen für <br /><h3>{self.survey_access.anbieter.name}</h3>"
-                f"<small>Rev. {self.survey_access.current_revision}</small>"
-            ),
+            "teaser": f"Ökostrom Fragebogen für <br /><h3>{self.survey_access.anbieter.name}</h3>{rev}",
             # Get template errors to disappear
             "tag": "div",
             "wrapper_class": "form-group row align-items-center",
@@ -116,7 +129,15 @@ class SurveyView(UpdateView):
 
     def get_form(self, form_class=None) -> Form:
         form: ModelForm = super().get_form(form_class)
-        if form.is_bound:
+        add_save_button = not self.view_mode
+        if self.view_mode:
+            for field in form.fields.values():
+                field.disabled = True
+            if self.survey_access.current_revision == self.object.revision:
+                self.state = State.view_only
+            else:
+                self.state = State.view_old
+        elif form.is_bound:
             # only overwrite state if form is bound, as otherwise the state was already set
             # in either in init or the get_form call before
             if form.is_valid():
@@ -126,7 +147,7 @@ class SurveyView(UpdateView):
                     self.state = State.unchanged
             else:
                 self.state = State.error
-        form.helper = gen_survey_helper(form, self.state)
+        form.helper = gen_survey_helper(form, self.state, add_save_button)
         return form
 
     def get_form_kwargs(self) -> dict[str, Any]:
@@ -145,7 +166,15 @@ class SurveyView(UpdateView):
     ) -> CompanySurvey2024:
         # Retrieve survey via SurveyAccess code and increment access count
         self.survey_access = get_object_or_404(SurveyAccess, code=self.kwargs["code"])
-        self.survey_access.increment_access_count()
+        if self.view_mode:
+            if self.rev:
+                return get_object_or_404(
+                    CompanySurvey2024,
+                    anbieter=self.survey_access.anbieter,
+                    revision=self.rev,
+                )
+        else:
+            self.survey_access.increment_access_count()
         return self.survey_access.survey
 
     def form_valid(self, form: ModelForm) -> HttpResponse:

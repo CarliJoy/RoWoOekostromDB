@@ -100,6 +100,9 @@ class Oekotest(ScrapeBase):
     tarif_url = models.URLField(max_length=512, db_default="")
     bewertung = models.CharField(max_length=255, db_default="")
 
+    class Meta:
+        verbose_name_plural = "Scrape: Ökopower"
+
     @property
     def extra(self) -> str:
         return format_html(
@@ -114,6 +117,9 @@ class OkPower(ScrapeBase):
     tarif = models.CharField(max_length=255, db_default="")
     tarif_url = models.URLField(max_length=512, db_default="")
     cert_info = models.CharField(max_length=255, db_default="")
+
+    class Meta:
+        verbose_name_plural = "Scrape: OkPower"
 
     @property
     def extra(self) -> str:
@@ -132,9 +138,15 @@ class Rowo2019(ScrapeBase):
         max_length=1024, db_default="", verbose_name="Link Stromkennzeichnung"
     )
 
+    class Meta:
+        verbose_name_plural = "Scrape: RoWo 2019"
+
 
 class Stromauskunft(ScrapeBase):
     portal_url = models.URLField(max_length=512, db_default="")
+
+    class Meta:
+        verbose_name_plural = "Scrape: Stromauskunft"
 
     @property
     def extra(self):
@@ -143,6 +155,9 @@ class Stromauskunft(ScrapeBase):
 
 class Verivox(ScrapeBase):
     portal_url = models.URLField(max_length=512, db_default="")
+
+    class Meta:
+        verbose_name_plural = "Scrape: Verivox"
 
     @property
     def extra(self):
@@ -459,6 +474,7 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
             State.error: Alert(
                 "danger", "Konnte nicht speichern, Eingabefehler gefunden."
             ),
+            State.view_old: Alert("warning", "Das ist eine alte Revision!"),
         }
     )
 
@@ -853,13 +869,16 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     class Meta:
         unique_together = ["anbieter", "revision"]
+        verbose_name = "Umfrage Revision"
+        verbose_name_plural = "Umfrage: Revisionen"
 
     def __str__(self) -> str:
         # TODO Edit with Anbieter Name
         return f"Umfrage {self.anbieter.name}"
 
     def get_absolute_url(self) -> str:
-        return reverse("survey")  # kwargs={"pk": self.pk})
+        url = SurveyAccess.objects.get(anbieter=self.anbieter).get_absolute_url()
+        return f"{url}&rev={self.revision}"
 
 
 class SurveyAccess(models.Model):
@@ -874,11 +893,15 @@ class SurveyAccess(models.Model):
     access_count = models.IntegerField(default=0)
     last_access = models.DateTimeField(null=True, blank=True)
 
+    class Meta:
+        verbose_name = "Umfrage Zugang"
+        verbose_name_plural = "Umfrage: Zugänge"
+
     def __str__(self) -> str:
         return f"{self.anbieter.name} (Rev {self.current_revision})"
 
     def get_absolute_url(self) -> str:
-        return reverse("survey_update", kwargs={"code": self.code})
+        return f'{reverse("survey_update", kwargs={"code": self.code})}?view=1'
 
     def increment_access_count(self) -> None:
         self.access_count += 1

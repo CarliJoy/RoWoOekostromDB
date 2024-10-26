@@ -10,17 +10,19 @@ from django.contrib.admin.widgets import AutocompleteSelect
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils.html import format_html
-from django.utils.safestring import mark_safe
+from django.utils.safestring import SafeString, mark_safe
 from jinja2 import Template as JinjaTemplate
 
 from .models import (
     STATUS_CHOICES,
     Anbieter,
     AnbieterName,
+    CompanySurvey2024,
     Oekotest,
     OkPower,
     Rowo2019,
     Stromauskunft,
+    SurveyAccess,
     Template,
     TemplateNames,
     Verivox,
@@ -67,6 +69,49 @@ def get_homepage_export_data(template: str) -> list[dict[str, str | list[str]]]:
     return data
 
 
+class ViewOnlyAdmin(admin.ModelAdmin):
+    def has_add_permission(self, request: HttpRequest) -> bool:  # noqa ARG002
+        return False
+
+    def has_change_permission(self, request: HttpRequest, obj: Any = None):  # noqa: ARG002:
+        return False
+
+    def has_delete_permission(self, request: HttpRequest, obj: Any = None):  # noqa: ARG002
+        return False
+
+
+@admin.register(SurveyAccess)
+class SurveyAccessAdmin(ViewOnlyAdmin):
+    list_display = (
+        "code",
+        "anbieter_name",
+        "survey_link",
+        "current_revision",
+        "access_count",
+        "last_access",
+    )
+
+    @admin.display(description="Anbieter", ordering="anbieter__name")
+    def anbieter_name(self, obj: SurveyAccess) -> str:
+        url = reverse("admin:anbieter_anbieter_change", args=[obj.anbieter.id])
+        return SafeString(f"<a href='{url}'>{obj.anbieter.name}</a>")
+
+    @admin.display(description="Umfrage", ordering="anbieter__name")
+    def survey_link(self, obj: SurveyAccess) -> str:
+        url = obj.get_absolute_url()
+        return SafeString(f"<a href='{url}'>Umfrage</a>")
+
+
+@admin.register(CompanySurvey2024)
+class SurveyAdmin(ViewOnlyAdmin):
+    list_display = ("anbieter", "revision")
+
+
+@admin.register(OkPower, Oekotest, Rowo2019, Stromauskunft, Verivox)
+class ScraperAdmin(ViewOnlyAdmin):
+    search_fields = ("name",)
+
+
 @admin.register(Template)
 class TemplateAdmin(admin.ModelAdmin):
     list_display = ["name"]
@@ -100,20 +145,6 @@ class TemplateAdmin(admin.ModelAdmin):
                     context["show_save_and_add_another"] = False
                     context["show_save"] = False
         return super().render_change_form(request, context, add, change, form_url)
-
-
-@admin.register(OkPower, Oekotest, Rowo2019, Stromauskunft, Verivox)
-class ScraperAdmin(admin.ModelAdmin):
-    search_fields = ("name",)
-
-    def has_change_permission(self, request, obj=None):  # noqa ARG002
-        return False
-
-    def has_add_permission(self, request, obj=None):  # noqa ARG002
-        return False
-
-    def has_delete_permission(self, request, obj=None):  # noqa ARG002
-        return False
 
 
 @admin.register(AnbieterName)
