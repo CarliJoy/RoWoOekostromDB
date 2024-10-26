@@ -7,12 +7,15 @@ from django.db import models
 from django.db.models.base import ModelBase
 from django.db.models.functions import Now
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.functional import classproperty
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 
+from .field_helper import generate_unique_code
 from .fields import (
+    CharField,
     FloatField,
     IntegerField,
     PercentField,
@@ -305,6 +308,12 @@ class Anbieter(AnbieterBase):
         if not self.slug_id:
             self.slug_id = slugify(self.name)
         super().save(*args, **kwargs)
+        # Ensure SurveyAccess and initial CompanySurvey2024 exist
+        if not SurveyAccess.objects.filter(anbieter=self).exists():
+            survey = CompanySurvey2024.objects.create(anbieter=self, revision=1)
+            SurveyAccess.objects.create(
+                anbieter=self, survey=survey, code=generate_unique_code()
+            )
 
     def clean(self):
         """
@@ -464,12 +473,46 @@ class KeepOrderModelBase(ModelBase):
 
 
 class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
+    anbieter = models.ForeignKey(Anbieter, on_delete=models.CASCADE, editable=False)
+    revision = models.PositiveIntegerField(default=1, editable=False)
+
     label_start = Label(
         '<div class="alert alert-info mt-3" role="alert">'
         "Bitte vergessen Sie nicht am Ende zu speichern. <br />"
         "Sie können dies auch mit Zwischenständen tun."
         "</div>"
     )
+
+    header_contact = Header("Kontaktinformationen")
+
+    section_client_contact = Section(
+        "Kund*innen Kontakt",
+        "Bitte geben Sie die Kontaktinformationen für Kunden*innen an",
+    )
+    name = CharField("Vollständiger Firmenname")
+
+    street = CharField("Straße")
+    plz = CharField("PLZ")
+    city = CharField("Ort")
+    phone = CharField("Telefon")
+    fax = CharField("Fax")
+    mail = CharField("E-Mail")
+    homepage = CharField("Homepage", max_length=1024)
+
+    section_rowo_contact = Section(
+        "ROBIN WOOD Ansprechpartner*in",
+        "Für eventuelle Rückfragen zu Ihren Antworten, geben Sie bitte hier eine Ansprechperson an [optional]",
+    )
+    contact_name = CharField("Name")
+    contact_position = CharField("Position/Funktion")
+    contact_mail = CharField("E-Mail")
+    contact_phone = CharField("Telefon")
+    contact_label = Label(
+        "<p>Ihr Kontakt bei ROBIN WOOD: <br />"
+        '<a href="mailto:oekostrom@robinwood.de">📧 Florian Kubitz</a> (Vorstandssprecher) '
+        '<a href="tel:+494038089216">📞040 380 892-16</a></p>'
+    )
+
     # Organisationsstruktur und Verflechtungen
     header_orga = Header("Organisationsstruktur und Verflechtungen")
 
@@ -492,9 +535,6 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     section_name = Section(
         "Identifikation",
         "Welchen Namen, Rechtsform und Handelsregisternummer hat ihr Unternehmen?",
-    )
-    name = models.CharField(
-        max_length=256, verbose_name="Vollständiger Name", default="Ökostrom GmbH"
     )
     legal_form = models.CharField(
         max_length=20,
@@ -524,11 +564,8 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         verbose_name="Rechtsform",
         help_text="Rechtsform ihres Unternehmens.",
     )
-    register_id = models.CharField(
-        max_length=256,
-        verbose_name="Handelsregisternummer",
-        help_text="Handelsregisternummer falls zutreffend",
-        blank=True,
+    register_id = CharField(
+        "Handelsregisternummer", "Handelsregisternummer falls zutreffend"
     )
 
     section_orga = Section(
@@ -663,8 +700,8 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     plant_ee_saved_trade = PercentField(
         "direkt Verträge",
         help_text=(
-            "Anlagen außerhalb der Förderung die Sie nicht besitzen aber deren Strom einkaufen "
-            "aber mit denen sie einen direkten Liefervertrag oder ähnlichen abgeschlossen haben"
+            "Anlagen außerhalb der Förderung die Sie nicht besitzen aber "
+            "mit denen sie einen direkten Liefervertrag abgeschlossen haben"
         ),
     )
 
@@ -838,9 +875,36 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         help_text="Wie viele Kilowattstunden Strom hat Ihr Unternehmen im Jahr 2023 verkauft?",
     )
 
+    class Meta:
+        unique_together = ["anbieter", "revision"]
+
     def __str__(self) -> str:
         # TODO Edit with Anbieter Name
-        return f"Umfrage ({self.id})"
+        return f"Umfrage {self.anbieter.name}"
 
     def get_absolute_url(self) -> str:
         return reverse("survey")  # kwargs={"pk": self.pk})
+
+
+class SurveyAccess(models.Model):
+    anbieter = models.OneToOneField(Anbieter, on_delete=models.CASCADE)
+    survey = models.ForeignKey(
+        CompanySurvey2024,
+        help_text="Survey of the current revision",
+        on_delete=models.CASCADE,
+    )
+    code = models.CharField(max_length=32, unique=True, default=generate_unique_code)
+    current_revision = models.IntegerField(default=1, db_index=True)
+    access_count = models.IntegerField(default=0)
+    last_access = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self) -> str:
+        return f"{self.anbieter.name} (Rev {self.current_revision})"
+
+    def get_absolute_url(self) -> str:
+        return reverse("survey_update", kwargs={"code": self.code})
+
+    def increment_access_count(self) -> None:
+        self.access_count += 1
+        self.last_access = timezone.now()
+        self.save()

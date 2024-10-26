@@ -66,6 +66,13 @@ class YesNoField(models.BooleanField):
         return InlineRadios(name)
 
 
+class CharField(models.CharField):
+    def __init__(self, verbose_name: str = "", help_text: str = "", **kwargs: Any):
+        kwargs.setdefault("blank", True)
+        kwargs.setdefault("max_length", 256)
+        super().__init__(verbose_name=verbose_name, help_text=help_text, **kwargs)
+
+
 class TextField(models.TextField):
     def __init__(
         self, verbose_name: str = "", help_text: str = "", **kwargs: Any

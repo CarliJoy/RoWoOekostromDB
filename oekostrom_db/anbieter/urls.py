@@ -5,7 +5,7 @@ from . import view_mirror, views
 
 urlpatterns = [
     path("", views.startpage, name="startpage"),
-    path("survey", views.SurveyView.as_view(), name="survey"),
+    path("survey/<str:code>/", views.SurveyView.as_view(), name="survey_update"),
 ]
 
 
