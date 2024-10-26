@@ -11,6 +11,12 @@ services:
     environment:
       DJANGO_ALLOWED_HOSTS: "localhost 127.0.0.1 prod rowo.kound.de stromdb.robinwood.de"
       DJANGO_CSRF_TRUSTED_ORIGINS: "http://127.0.0.1 http://127.0.0.1:8000 https://rowo.kound.de https://stromdb.robinwood.de"
+      MEDIA_ROOT: "/home/app/uploads"
+      MEDIA_URL: "/f"
+    volumes:
+      - type: bind
+        source: ./uploads
+        target: /home/app/uploads
     depends_on:
       - db
     ports:
@@ -25,6 +31,12 @@ services:
       NGINX_HOST: "foobar.com"
       NGINX_PORT: "8001"
       NGINX_TARGET: "prod:8000"
+      MEDIA_ROOT: "/home/app/uploads"
+      MEDIA_URL: "/f"
+    volumes:
+      - type: bind
+        source: ./uploads
+        target: /home/app/uploads
     ports:
       - "127.0.0.1:8001:8001"
     depends_on:

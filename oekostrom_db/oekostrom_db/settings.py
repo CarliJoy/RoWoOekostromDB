@@ -183,6 +183,8 @@ ROWO_MIRRORING = False
 STATIC_URL = "static/"
 APP_STATIC_ROOT = BASE_DIR / "static"
 STATIC_ROOT = BASE_DIR.parent / "static"
+MEDIA_ROOT = Path(os.environ.get("MEDIA_ROOT", BASE_DIR.parent / "uploads"))
+MEDIA_URL = os.environ.get("MEDIA_URL", "uploads/").rstrip("/") + "/"
 
 STATICFILES_DIRS = [
     APP_STATIC_ROOT,

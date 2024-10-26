@@ -8,6 +8,9 @@ services:
     container_name: rowo_oekostrom_db_dev
     volumes:
       - type: bind
+        source: ./uploads
+        target: /home/app/uploads
+      - type: bind
         source: ./oekostrom_db
         target: /home/app/oekostrom_db
     env_file:
@@ -17,6 +20,8 @@ services:
       DJANGO_INTERFACE: "0.0.0.0:8000"
       DJANGO_ALLOWED_HOSTS: "localhost 127.0.0.1 dev"
       DJANGO_CSRF_TRUSTED_ORIGINS: "http://127.0.0.1 http://127.0.0.1:8000"
+      MEDIA_ROOT: "/home/app/uploads"
+      MEDIA_URL: "/f"
     depends_on:
       - db
     ports:
@@ -31,6 +36,12 @@ services:
       NGINX_HOST: "foobar.com"
       NGINX_PORT: "80"
       NGINX_TARGET: "dev:8000"
+      MEDIA_ROOT: "/home/app/uploads"
+      MEDIA_URL: "/f"
+    volumes:
+      - type: bind
+        source: ./uploads
+        target: /home/app/uploads
     ports:
       - "80:80"
     depends_on:

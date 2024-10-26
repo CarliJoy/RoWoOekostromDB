@@ -72,7 +72,6 @@ class RevisionModelForm(ModelForm):
     def clean(self) -> dict[str, Any]:
         data = super().clean() or self.cleaned_data
         if self.is_bound:
-            logger.info(f"clean: {data.get('revision')=}")
             if data.get("revision") != self.current_revision:
                 self.add_error(
                     field=None,

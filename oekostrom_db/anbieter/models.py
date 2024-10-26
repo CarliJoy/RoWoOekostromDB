@@ -13,7 +13,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 
-from .field_helper import generate_unique_code
+from .field_helper import generate_unique_code, upload_to_power_plants
 from .fields import (
     CharField,
     FileField,
@@ -724,7 +724,9 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         ),
     )
     power_plants_file = FileField(
-        "Erzeugungsanlagen Tabelle", "Bitte laden Sie die Tabelle hoch."
+        "Erzeugungsanlagen Tabelle",
+        "Bitte laden Sie die Tabelle hoch.",
+        upload_to=upload_to_power_plants,
     )
     criteria_for_third_party_suppliers = TextField(
         verbose_name="Kriterien für Fremdanbieter",

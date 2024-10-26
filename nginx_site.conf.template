@@ -10,6 +10,11 @@ server {
         root /home/app/static;
     }
 
+    location ${MEDIA_URL} {
+        alias ${MEDIA_ROOT}/;
+        autoindex off;
+    }
+
     location /favicon.ico {
         root /home/app/static;
     }
