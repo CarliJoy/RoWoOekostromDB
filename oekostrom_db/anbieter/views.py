@@ -1,15 +1,18 @@
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from crispy_forms.helper import FormHelper
-from crispy_forms.layout import HTML, Layout, Row, Submit
+from crispy_forms.layout import Layout, Row, Submit
 from django.conf import settings
 from django.db.models.query_utils import DeferredAttribute
 from django.forms import Form, ModelForm
+from django.forms import models as model_forms
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils.safestring import SafeString
 from django.views.generic.edit import UpdateView
 
+from .layouts import LayoutElement, State
 from .models import Anbieter, CompanySurvey2024, SurveyAccess
 
 if TYPE_CHECKING:
@@ -27,17 +30,21 @@ def startpage(request: HttpRequest) -> HttpResponse:
     return render(request, "anbieter/startpage.html", context)
 
 
-def gen_survey_helper() -> FormHelper:
+def gen_survey_helper(form: ModelForm, state: State) -> FormHelper:  # noqa: ARG001
     helper = FormHelper()
     helper.form_group_wrapper_class = "form-group"
     helper.form_class = "from form-horizontal"
     helper.field_class = "col-sm-6"
     helper.label_class = "col-sm-4"
     layout_list = []
+
+    if state in CompanySurvey2024.state_labels:
+        layout_list.append(CompanySurvey2024.state_labels[state])
+
     for field_name in CompanySurvey2024._field_order:
         field = getattr(CompanySurvey2024, field_name)
-        if hasattr(field, "__html__"):
-            layout_list.append(HTML(field.__html__()))
+        if isinstance(field, LayoutElement):
+            layout_list.append(field)
         else:
             if isinstance(field, DeferredAttribute):
                 field: Field = field.field
@@ -50,29 +57,87 @@ def gen_survey_helper() -> FormHelper:
     return helper
 
 
+class RevisionModelForm(ModelForm):
+    def __init__(self, *args, current_revision: int, request_path: str, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.current_revision = current_revision
+        self.request_path = request_path
+
+    def clean(self) -> dict[str, Any]:
+        data = super().clean() or self.cleaned_data
+        if self.is_bound:
+            logger.info(f"clean: {data.get('revision')=}")
+            if data.get("revision") != self.current_revision:
+                self.add_error(
+                    field=None,
+                    error=SafeString(
+                        "Diese Umfrage wurde zwischenzeitlich von einer anderen Person bzw. "
+                        "in einen anderen Browserfenster gespeichert. "
+                        "Das Speichern dieser Version ist daher nicht mehr möglich. "
+                        f"Öffnen Sie den "
+                        f"<a href='{self.request_path}' target='_blank'>Umfragelink</a> "
+                        f"erneut um fortzufahren."
+                    ),
+                )
+
+
 class SurveyView(UpdateView):
     model = CompanySurvey2024
     fields = "__all__"
     template_name = "anbieter/survey.html"
 
+    object: CompanySurvey2024
     survey_access: SurveyAccess  # Store the SurveyAccess instance for easy access
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.reset_form: bool = False
+        self.state: State = State.start
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context |= {
             "rowo_url": "/mirror" if settings.ROWO_MIRRORING else "/static",
             "rowo_hp": "https://robinwood.de",
-            "teaser": f"Fragebogen für <strong>{self.survey_access.anbieter.name}</strong>",
+            "teaser": (
+                f"Ökostrom Fragebogen für <br /><h3>{self.survey_access.anbieter.name}</h3>"
+                f"<small>Rev. {self.survey_access.current_revision}</small>"
+            ),
             # Get template errors to disappear
             "tag": "div",
             "wrapper_class": "form-group row align-items-center",
         }
         return context
 
+    def get_form_class(self) -> type[RevisionModelForm]:
+        return model_forms.modelform_factory(
+            self.model, fields=self.fields, form=RevisionModelForm
+        )
+
     def get_form(self, form_class=None) -> Form:
-        form = super().get_form(form_class)
-        form.helper = gen_survey_helper()
+        form: ModelForm = super().get_form(form_class)
+        if form.is_bound:
+            # only overwrite state if form is bound, as otherwise the state was already set
+            # in either in init or the get_form call before
+            if form.is_valid():
+                if form.has_changed():
+                    self.state = State.saved
+                else:
+                    self.state = State.unchanged
+            else:
+                self.state = State.error
+        form.helper = gen_survey_helper(form, self.state)
         return form
+
+    def get_form_kwargs(self) -> dict[str, Any]:
+        kwargs = super().get_form_kwargs()
+        kwargs["current_revision"] = self.survey_access.current_revision
+        kwargs["request_path"] = self.request.path
+        if self.reset_form:
+            for elm in ("data", "files"):
+                if elm in kwargs:
+                    del kwargs[elm]
+        return kwargs
 
     def get_object(
         self,
@@ -84,19 +149,9 @@ class SurveyView(UpdateView):
         return self.survey_access.survey
 
     def form_valid(self, form: ModelForm) -> HttpResponse:
-        # Check if a newer revision has been created
-        if form.instance.revision != self.survey_access.current_revision:
-            form.add_error(
-                field=None,
-                error=(
-                    "Diese Umfrage wurde zwischenzeitlich von einer anderen Person bzw. "
-                    "in einen anderen Browserfenster gespeichert. "
-                    "Ein speichern dieser Version ist daher nicht mehr möglich. "
-                    "Öffnen Sie den Umfragelink erneut um fortzufahren."
-                ),
-            )
-            return self.form_invalid(form)
-
+        if not form.has_changed():
+            # Nothing has changed, so keep revision as it is
+            return self.render_to_response(self.get_context_data(form=form))
         # Increment revision and save a new CompanySurvey2024 instance
         new_revision = self.survey_access.current_revision + 1
         form.instance.revision = new_revision
@@ -112,6 +167,10 @@ class SurveyView(UpdateView):
         self.survey_access.current_revision = new_revision
         self.survey_access.save()
 
+        # recreate form, reset request
+        self.object = self.get_object()
+        self.reset_form = True
+        form = self.get_form()
         # Render the form with additional context "status": "saved"
-        context = self.get_context_data(form=form, status="saved")
+        context = self.get_context_data(form=form)
         return self.render_to_response(context)

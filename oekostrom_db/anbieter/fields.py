@@ -96,6 +96,12 @@ class IntegerField(models.IntegerField):
         return Field(name)
 
 
+class HiddenPositiveIntegerField(models.PositiveIntegerField):
+    def formfield(self, **kwargs):
+        kwargs.setdefault("widget", widgets.HiddenInput)
+        return super().formfield(**kwargs)
+
+
 class FloatField(models.FloatField):
     def __init__(
         self, verbose_name: str = "", unit: str = "", help_text: str = "", **kwargs: Any
@@ -109,3 +115,13 @@ class FloatField(models.FloatField):
         if self._unit:
             return AppendedText(name, self._unit)
         return Field(name)
+
+
+class FileField(models.FileField):
+    def __init__(self, verbose_name: str = "", help_text: str = "", **kwargs: Any):
+        kwargs.setdefault("blank", True)
+        kwargs.setdefault("upload_to", "uploads/")
+        super().__init__(verbose_name=verbose_name, help_text=help_text, **kwargs)
+
+    def bootstrap_field(self, name: str) -> Field:
+        return Field(name, css_class="table_upload")

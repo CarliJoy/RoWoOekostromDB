@@ -16,13 +16,16 @@ from django.utils.text import slugify
 from .field_helper import generate_unique_code
 from .fields import (
     CharField,
+    FileField,
     FloatField,
+    HiddenPositiveIntegerField,
     IntegerField,
     PercentField,
     TextField,
     YesNoField,
     is_percentage,
 )
+from .layouts import Alert, Header, Label, Section, State, StateLabels
 
 
 class AnbieterBase(models.Model):
@@ -428,38 +431,6 @@ class Template(models.Model):
         return TemplateNames(self.name).label
 
 
-class Header:
-    def __init__(self, name: str) -> None:
-        self.name = name
-
-    def __html__(self) -> str:
-        return f"<h2 class='kampagne-full-forderung-headline'>{self.name}</h2>"
-
-
-class Label:
-    def __init__(self, content: str) -> None:
-        self.content = content
-
-    def __html__(self) -> str:
-        return f"<span>{self.content}</span>"
-
-
-class Section:
-    def __init__(self, name: str, description: str = "") -> None:
-        self.name = name
-        self.description = description
-
-    def __html__(self) -> str:
-        desc = ""
-        if self.description:
-            desc = f"<div class='forderung-text'>{self.description}</div>"
-        return (
-            f"<div class='kampagne-full-forderung-wrapper mobile-padding-1 mb-3'>"
-            f"<div class='forderung-nummer'><span>?</span></div>"
-            f"<div class='forderung-titel'>{self.name}</div>{desc}</div>"
-        )
-
-
 class KeepOrderModelBase(ModelBase):
     def __new__(
         cls, name: str, bases: list[type], attrs: dict[str, Any], **kwargs
@@ -474,13 +445,21 @@ class KeepOrderModelBase(ModelBase):
 
 class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     anbieter = models.ForeignKey(Anbieter, on_delete=models.CASCADE, editable=False)
-    revision = models.PositiveIntegerField(default=1, editable=False)
+    revision = HiddenPositiveIntegerField(default=1)
 
-    label_start = Label(
-        '<div class="alert alert-info mt-3" role="alert">'
-        "Bitte vergessen Sie nicht am Ende zu speichern. <br />"
-        "Sie können dies auch mit Zwischenständen tun."
-        "</div>"
+    state_labels = StateLabels(
+        {
+            State.start: Alert(
+                "info",
+                "Bitte vergessen Sie nicht am Ende zu Speichern. <br />"
+                "Sie können dies auch mit Zwischenständen tun.",
+            ),
+            State.saved: Alert("success", "Erfolgreich gespeichert."),
+            State.unchanged: Alert("info", "Nicht gespeichert, da keine Änderungen."),
+            State.error: Alert(
+                "danger", "Konnte nicht speichern, Eingabefehler gefunden."
+            ),
+        }
     )
 
     header_contact = Header("Kontaktinformationen")
@@ -727,11 +706,8 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
             "</ul>"
         ),
     )
-    power_plants_file = models.FileField(
-        upload_to="uploads/",
-        blank=True,
-        verbose_name="Erzeugungsanlagen Tabelle",
-        help_text="Bitte laden Sie die Tabelle hoch.",
+    power_plants_file = FileField(
+        "Erzeugungsanlagen Tabelle", "Bitte laden Sie die Tabelle hoch."
     )
     criteria_for_third_party_suppliers = TextField(
         verbose_name="Kriterien für Fremdanbieter",
