@@ -87,6 +87,7 @@ class SurveyAccessAdmin(ViewOnlyAdmin):
         "anbieter_name",
         "survey_link",
         "current_revision",
+        "changed",
         "access_count",
         "last_access",
     )
@@ -104,7 +105,7 @@ class SurveyAccessAdmin(ViewOnlyAdmin):
 
 @admin.register(CompanySurvey2024)
 class SurveyAdmin(ViewOnlyAdmin):
-    list_display = ("anbieter", "revision")
+    list_display = ("anbieter", "revision", "created")
 
 
 @admin.register(OkPower, Oekotest, Rowo2019, Stromauskunft, Verivox)

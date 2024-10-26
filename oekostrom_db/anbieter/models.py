@@ -459,6 +459,7 @@ class KeepOrderModelBase(ModelBase):
 
 
 class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
+    created = models.DateTimeField(auto_now_add=True, null=True)
     anbieter = models.ForeignKey(Anbieter, on_delete=models.CASCADE, editable=False)
     revision = HiddenPositiveIntegerField(default=1)
 
@@ -890,6 +891,7 @@ class SurveyAccess(models.Model):
     )
     code = models.CharField(max_length=32, unique=True, default=generate_unique_code)
     current_revision = models.IntegerField(default=1, db_index=True)
+    changed = models.DateTimeField(null=True)
     access_count = models.IntegerField(default=0)
     last_access = models.DateTimeField(null=True, blank=True)
 

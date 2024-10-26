@@ -9,6 +9,7 @@ from django.forms import Form, ModelForm
 from django.forms import models as model_forms
 from django.http import HttpRequest, HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.views.generic.edit import UpdateView
 
@@ -194,6 +195,7 @@ class SurveyView(UpdateView):
         # Update SurveyAccess to point to the new revision
         self.survey_access.survey = new_survey
         self.survey_access.current_revision = new_revision
+        self.survey_access.changed = timezone.now()
         self.survey_access.save()
 
         # recreate form, reset request
