@@ -49,9 +49,11 @@ def mirror(request: HttpRequest, file_path: str) -> HttpResponse:  # noqa: ARG00
         local_file_path.write_bytes(response.content)
 
         # Serve the newly downloaded file
+        logger.info(f"Downloaded {external_url}")
         return serve_local_file(local_file_path)
 
     except httpx.HTTPError as e:
+        logger.error(f"Failed to download {external_url}: {e}")
         raise Http404(f"Could not download file from {external_url}: {e}")
 
 
