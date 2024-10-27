@@ -1,5 +1,7 @@
 # Use the official Python image from the Docker Hub
 FROM python:3.12-slim-bookworm AS BASE
+ARG UID
+ARG GID
 
 # Set environment variables
 ENV PYTHONDONTWRITEBYTECODE 1
@@ -15,8 +17,8 @@ RUN set -ex; \
 # Create user
 
 RUN set -ex; \
-    groupadd --gid 1000 app; \
-    useradd --create-home --uid 1000 --gid app app
+    groupadd --gid $GID app; \
+    useradd --create-home --uid $UID --gid app app
 
 # Set work directory
 WORKDIR /home/app
