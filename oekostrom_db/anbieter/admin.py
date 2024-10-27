@@ -90,6 +90,7 @@ class ViewOnlyAdmin(admin.ModelAdmin):
 
 @admin.register(SurveyAccess)
 class SurveyAccessAdmin(ViewOnlyAdmin):
+    search_fields = ("anbieter__name", "code")
     list_display = (
         "code",
         "anbieter_name",
@@ -113,6 +114,7 @@ class SurveyAccessAdmin(ViewOnlyAdmin):
 
 @admin.register(CompanySurvey2024)
 class SurveyAdmin(ViewOnlyAdmin):
+    search_fields = ("anbieter__name",)
     list_display = ("anbieter", "revision", "created")
 
 
