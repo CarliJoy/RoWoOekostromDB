@@ -25,7 +25,7 @@ from .fields import (
     YesNoField,
     is_percentage,
 )
-from .layouts import Alert, Header, Label, Section, State, StateLabels
+from .layouts import Alert, Header, Label, PercentChecker, Section, State, StateLabels
 
 
 class AnbieterBase(models.Model):
@@ -425,8 +425,12 @@ class UmfrageVersendung2024(Anbieter):
         null=True,
         db_default=None,
         blank=True,
-        choices=KRITERIUM,
-        verbose_name="📧",
+        choices={
+            True: "Sent",
+            None: "Not sent",
+            False: "Sent failed",
+        },
+        verbose_name="📤 State",
         help_text="Status des Mail versand",
     )
     mail_details = models.TextField(help_text="i.e. Fehlermeldung aus Mail Versand")
@@ -503,6 +507,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
                 "info",
                 "Bitte vergessen Sie nicht am Ende zu Speichern. <br />"
                 "Sie können dies auch mit Zwischenständen tun.",
+            ),
+            State.saved_with_warning: Alert(
+                "warning",
+                "Bitte überprüfen Sie ihre Daten. Einige schein logische Fehler zu enthalten.",
             ),
             State.saved: Alert("success", "Erfolgreich gespeichert."),
             State.unchanged: Alert("info", "Nicht gespeichert, da keine Änderungen."),
@@ -671,6 +679,15 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     wind_power = PercentField("Windkraft")
     geothermal_power = PercentField("Erdwärme")
     other_power = PercentField("Sonstige Energiequellen")
+    checker_power_source = PercentChecker(
+        "hydro_power",
+        "solar_power",
+        "biomass_power",
+        "wind_power",
+        "geothermal_power",
+        "other_power",
+    )
+
     other_power_explanation = TextField(
         verbose_name="Erläuterung ",
         help_text="Erläuterungen zu 'Sonstiges Energiequellen' im Strommix, falls zutreffend.",
@@ -686,6 +703,12 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     )
     power_from_traders = PercentField("andere Stromhändler")
     power_from_own_plants = PercentField("eigenen Anlagen")
+    checker_power_from = PercentChecker(
+        "power_from_exchange",
+        "power_from_plants",
+        "power_from_traders",
+        "power_from_own_plants",
+    )
 
     section_plant_location = Section(
         "Standort der Anlagen",
@@ -697,6 +720,11 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     regional_plants_percent = PercentField("ihre Region")
     national_plants_percent = PercentField("Deutschland")
     international_plants_percent = PercentField("Europäisches Ausland")
+    checker_power_region = PercentChecker(
+        "regional_plants_percent",
+        "national_plants_percent",
+        "international_plants_percent",
+    )
 
     section_plant_age = Section(
         "Anlagenalter",
@@ -711,6 +739,14 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
     plant_age_11_15 = PercentField("11-15 Jahre")
     plant_age_16_20 = PercentField("16-20 Jahre")
     plant_age_21_plus = PercentField("über 21 Jahre")
+    checker_plant_age = PercentChecker(
+        "plant_age_0_3",
+        "plant_age_4_6",
+        "plant_age_7_10",
+        "plant_age_11_15",
+        "plant_age_16_20",
+        "plant_age_21_plus",
+    )
 
     section_plant_ee_saved = Section(
         "EEG Anlagen Altanlagen",
@@ -733,6 +769,9 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
             "Anlagen außerhalb der Förderung die Sie nicht besitzen aber "
             "mit denen sie einen direkten Liefervertrag abgeschlossen haben"
         ),
+    )
+    checker_ee_saved = PercentChecker(
+        "plant_ee_saved_owned", "plant_ee_saved_new", "plant_ee_saved_trade"
     )
 
     section_file_upload = Section(

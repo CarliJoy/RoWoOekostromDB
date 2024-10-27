@@ -12,6 +12,11 @@ class LayoutElement(HTML):
         raise NotImplementedError()
 
 
+class Nothing(LayoutElement):
+    def __html__(self) -> str:
+        return ""
+
+
 class Header(LayoutElement):
     def __init__(self, name: str) -> None:
         self.name = name
@@ -71,6 +76,40 @@ class State(StrEnum):
     error = "error"
     view_only = "view_only"
     view_old = "view_old"
+
+
+HUNDERT_PERCENT = 100
+ALMOST_HUNDERT_PERCENT = 99
+
+
+class PercentChecker:
+    def __init__(self, *fields: str) -> None:
+        self.fields = fields
+
+    def check(self, field_values: dict[str, float]) -> tuple[LayoutElement, bool]:
+        total = 0
+        fields_set = 0
+        for field in self.fields:
+            if field in field_values and field_values[field]:
+                fields_set += 1
+                total += field_values.get(field)
+        if not fields_set:
+            return Nothing(), True
+        if total > HUNDERT_PERCENT:
+            return Alert(
+                "danger",
+                f"Die Summe der Prozente ist {total:.1f}%. Sie sollte kleiner-gleich 100% sein.",
+            ), False
+        if total == HUNDERT_PERCENT:
+            return Alert("success", "Die Summe der Prozente ist genau 100%"), True
+        if total >= ALMOST_HUNDERT_PERCENT:
+            return Alert(
+                "success",
+                f"Die Summe der Prozente ist {total:.1f}% und damit fast genau 100%.",
+            ), True
+        return Alert(
+            "warning", f"Die Summe der Prozente ist {total:.1f}%. Das ist zu wenig."
+        ), False
 
 
 class StateLabels(dict[State, Alert]): ...

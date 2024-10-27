@@ -13,7 +13,7 @@ from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.views.generic.edit import UpdateView
 
-from .layouts import LayoutElement, State
+from .layouts import LayoutElement, PercentChecker, State
 from .models import Anbieter, CompanySurvey2024, SurveyAccess
 
 if TYPE_CHECKING:
@@ -46,9 +46,19 @@ def gen_survey_helper(
     if state in CompanySurvey2024.state_labels:
         layout_list.append(CompanySurvey2024.state_labels[state])
 
+    if form.is_bound:
+        data = form.cleaned_data
+    else:
+        data = form.initial
+
+    checks_okay = True
     for field_name in CompanySurvey2024._field_order:
         field = getattr(CompanySurvey2024, field_name)
-        if isinstance(field, LayoutElement):
+        if isinstance(field, PercentChecker):
+            layout, check_okay = field.check(data)
+            layout_list.append(layout)
+            checks_okay = checks_okay and check_okay
+        elif isinstance(field, LayoutElement):
             layout_list.append(field)
         else:
             if isinstance(field, DeferredAttribute):
@@ -59,6 +69,8 @@ def gen_survey_helper(
                 layout_list.append(field_name)
     if add_save_button:
         layout_list.append(Row(Submit("Speichern", "Speichern", css_class="mb-5 mt-3")))
+    if not checks_okay:
+        layout_list.insert(1, CompanySurvey2024.state_labels[State.saved_with_warning])
     helper.add_layout(Layout(*layout_list))
     return helper
 
