@@ -7,6 +7,12 @@ import anbieter.field_helper
 import anbieter.fields
 
 
+def reset_survey_access_entries(apps, schema_editor):  # noqa: ARG001
+    CompanySurvey2024 = apps.get_model("anbieter", "CompanySurvey2024")
+    # Delete all existing CompanySurvey2024 entries
+    CompanySurvey2024.objects.all().delete()
+
+
 class Migration(migrations.Migration):
     dependencies = [
         ("anbieter", "0014_companysurvey2024"),
@@ -139,6 +145,7 @@ class Migration(migrations.Migration):
                 verbose_name="Handelsregisternummer",
             ),
         ),
+        migrations.RunPython(reset_survey_access_entries),
         migrations.AlterUniqueTogether(
             name="companysurvey2024",
             unique_together={("anbieter", "revision")},

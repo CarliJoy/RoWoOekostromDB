@@ -12,6 +12,5 @@ T = TypeVar("T")
 def log_startup(get_response: T) -> T:
     logger.info(f"Started with ALLOWED_HOSTS={settings.ALLOWED_HOSTS}")
     logger.info(f"Template folder {settings.TEMPLATES[0]['DIRS']}")
-    logger.info(f"{settings.MEDIA_ROOT=} {settings.MEDIA_URL=}")
-    logger.debug("Debug works?")
+    logger.debug(f"Debug works? {settings.DATABASES}")
     return get_response

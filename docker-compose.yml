@@ -55,5 +55,9 @@ services:
     container_name: rowo_oekostrom_db_postgres
     env_file:
       - .env
+    volumes:
+      - type: "bind"
+        source: "./initdb"
+        target: "/docker-entrypoint-initdb.d/"
     ports:
       - "5432:5432"

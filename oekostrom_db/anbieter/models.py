@@ -356,6 +356,10 @@ class Anbieter(AnbieterBase):
             "money_for_ee_only",
         )
 
+    @classproperty
+    def active_count(cls) -> int:
+        return Anbieter.objects.filter(active=True).count()
+
     @cached_property
     def parent(self) -> "Anbieter":
         if self.mutter is not None:
@@ -403,6 +407,33 @@ class Anbieter(AnbieterBase):
             result.append(f"{self}: {anbieter.begruendung_extern}")
         return tuple(result)
 
+    @property
+    def code_2024(self) -> str:
+        return self.survey_access.code
+
+
+class UmfrageVersendung2024(Anbieter):
+    anbieter = models.OneToOneField(
+        Anbieter,
+        on_delete=models.CASCADE,
+        parent_link=True,
+        primary_key=True,
+        editable=False,
+    )
+    sent_date = models.DateTimeField(null=True, blank=True)
+    mail_status = models.BooleanField(
+        null=True,
+        db_default=None,
+        blank=True,
+        choices=KRITERIUM,
+        verbose_name="📧",
+        help_text="Status des Mail versand",
+    )
+    mail_details = models.TextField(help_text="i.e. Fehlermeldung aus Mail Versand")
+
+    class Meta:
+        verbose_name_plural = "Umfrage: Mailversand"
+
 
 class AnbieterName(models.Model):
     name = models.CharField(max_length=255, unique=True)
@@ -434,6 +465,9 @@ class AnbieterName(models.Model):
 
 class TemplateNames(models.TextChoices):
     HOMEPAGE_TEXT_EXPORT = "HP_EXPORT", "Homepage Text"
+    SURVEY2024_SUBJECT = "SURVEY_2024_SUBJECT", "Umfrage 2024 Betreff"
+    SURVEY2024_TXT = "SURVEY_2024_TXT", "Umfrage 2024 Text"
+    SURVEY2024_HTML = "SURVEY_2024_HTML", "Umfrage 2024 Html"
 
 
 class Template(models.Model):
@@ -885,7 +919,9 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
 
 class SurveyAccess(models.Model):
-    anbieter = models.OneToOneField(Anbieter, on_delete=models.CASCADE)
+    anbieter = models.OneToOneField(
+        Anbieter, on_delete=models.CASCADE, related_name="survey_access"
+    )
     survey = models.ForeignKey(
         CompanySurvey2024,
         help_text="Survey of the current revision",

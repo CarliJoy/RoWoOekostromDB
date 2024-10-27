@@ -1,5 +1,7 @@
+import copy
 import json
 import logging
+import traceback
 from typing import Any, Final
 from urllib.parse import urlparse
 
@@ -7,8 +9,10 @@ from django import forms
 from django.contrib import admin
 from django.contrib.admin.utils import unquote
 from django.contrib.admin.widgets import AutocompleteSelect
+from django.core.mail import send_mail
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
+from django.utils import timezone
 from django.utils.html import format_html
 from django.utils.safestring import SafeString, mark_safe
 from jinja2 import Template as JinjaTemplate
@@ -25,6 +29,7 @@ from .models import (
     SurveyAccess,
     Template,
     TemplateNames,
+    UmfrageVersendung2024,
     Verivox,
 )
 
@@ -42,7 +47,9 @@ class RenderException(Exception):
         )
 
 
-def get_homepage_export_data(template: str) -> list[dict[str, str | list[str]]]:
+def get_homepage_export_data(
+    template: str, include_pre: bool = False
+) -> list[dict[str, str | list[str]]]:
     data: dict[str, str | list[str]] = []
 
     for obj in Anbieter.objects.filter(active=True).order_by("name"):
@@ -56,7 +63,8 @@ def get_homepage_export_data(template: str) -> list[dict[str, str | list[str]]]:
             rendered_content = jinja_template.render(context)
         except Exception as e:
             raise RenderException(anbieter=obj, exc=e)
-
+        if include_pre:
+            rendered_content = f"<pre>{rendered_content}</pre>"
         # Construct the JSON data
         data.append(
             {
@@ -135,10 +143,16 @@ class TemplateAdmin(admin.ModelAdmin):
             context["template_previews"] = []
             if object_id := context.get("object_id"):
                 obj: Template = self.get_object(request, unquote(object_id))
-                if obj.name == TemplateNames.HOMEPAGE_TEXT_EXPORT:
+                if obj.name in (
+                    TemplateNames.HOMEPAGE_TEXT_EXPORT,
+                    TemplateNames.SURVEY2024_TXT,
+                    TemplateNames.SURVEY2024_SUBJECT,
+                    TemplateNames.SURVEY2024_HTML,
+                ):
                     try:
                         context["template_previews"] = get_homepage_export_data(
-                            obj.template
+                            obj.template,
+                            include_pre=obj.name == TemplateNames.SURVEY2024_TXT,
                         )
                     except RenderException as e:
                         self.message_user(request, message=str(e), level="error")
@@ -280,7 +294,7 @@ class AnbieterAdmin(admin.ModelAdmin):
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
 
-    actions = ["export_for_homepage"]
+    actions = ["init_survey_email"]
 
     # Add custom URL and buttons
     def get_urls(self):
@@ -316,6 +330,25 @@ class AnbieterAdmin(admin.ModelAdmin):
         response["Content-Disposition"] = "attachment; filename=anbieter_export.json"
 
         return response
+
+    @admin.action(description="Init Umfrageversendung")
+    def init_survey_email(self, request: HttpRequest, queryset):
+        obj: Anbieter
+        created = 0
+        already_existed = 0
+        for obj in queryset:
+            try:
+                UmfrageVersendung2024.objects.get(anbieter=obj)
+            except UmfrageVersendung2024.DoesNotExist:
+                # Create the instance only if it does not exist, without copying all defaults
+                new = UmfrageVersendung2024(anbieter=obj)
+                new.save_base(raw=True, force_insert=True)
+                created += 1
+            else:
+                already_existed += 1
+        self.message_user(
+            request, f"Umfrageversendungen initiiert {created=} {already_existed=}"
+        )
 
     # Add the export button to the admin interface
     def changelist_view(self, request, extra_context=None):
@@ -489,3 +522,112 @@ class AnbieterAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):  # noqa ARG002
         return False
+
+
+@admin.register(UmfrageVersendung2024)
+class UmfrageVersendung2024Admin(AnbieterAdmin):
+    actions = ["send_survey_email"]
+
+    list_display = (
+        "obj_id",
+        "name",
+        "german_wide",
+        "has_mutter",
+        "has_sells_from",
+        "mail_status",
+        "mail",
+        "ee_only",
+        "additional",
+        "independent",
+        "no_bad_money",
+    )
+    list_filter = [
+        "german_wide",
+        ("mutter", admin.EmptyFieldListFilter),
+        ("sells_from", admin.EmptyFieldListFilter),
+        "mail_status",
+        "nur_oeko",
+        "zusaetzlichkeit",
+        "unabhaengigkeit",
+        "money_for_ee_only",
+    ]
+
+    @admin.action(description="Sende Mail")
+    def send_survey_email(self, request: HttpRequest, queryset):
+        obj: UmfrageVersendung2024
+        queryset = queryset.select_related("anbieter__survey_access")
+        already_sent = 0
+        retried = 0
+        sent = 0
+        failed = 0
+
+        try:
+            subject_template = JinjaTemplate(
+                Template.objects.get(name=TemplateNames.SURVEY2024_SUBJECT).template
+            )
+            text_template = JinjaTemplate(
+                Template.objects.get(name=TemplateNames.SURVEY2024_TXT).template
+            )
+            html_template = JinjaTemplate(
+                Template.objects.get(name=TemplateNames.SURVEY2024_HTML).template
+            )
+        except Exception as e:
+            self.message_user(
+                request,
+                f"Error getting templates {type(e).__name__}: {e}.",
+                level="error",
+            )
+            return
+
+        for obj in queryset:
+            if obj.mail_status is True:
+                already_sent += 1
+                continue
+
+            try:
+                subject = subject_template.render(obj=obj)
+                message = text_template.render(obj=obj)
+                html = html_template.render(obj=obj)
+                send_mail(
+                    subject,
+                    message,
+                    None,  # Uses DEFAULT_FROM_EMAIL
+                    [obj.mail],
+                    fail_silently=False,
+                    html_message=html,
+                )
+            except Exception as e:
+                failed += 1
+                obj.mail_status = False
+                obj.mail_details = (
+                    f"{type(e).__name__}: {e}\n\n{traceback.format_exc()}"
+                )
+            else:
+                if obj.mail_status is None:
+                    sent += 1
+                else:
+                    retried += 1
+                obj.mail_status = True
+                obj.sent_date = timezone.now()
+                obj.mail_details = ""
+            obj.save()
+
+        self.message_user(
+            request,
+            f"Finished sending: {already_sent=} {sent=} {retried=} {failed=}",
+            level="info",
+        )
+
+    def get_fieldsets(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        obj: UmfrageVersendung2024 | None = None,  # noqa: ARG002
+    ):
+        fs = list(copy.deepcopy(AnbieterAdmin.fieldsets))
+        fs.append(
+            (
+                "Umfrage Versand",
+                {"fields": ("sent_date", "mail_status", "mail_details")},
+            )
+        )
+        return fs
