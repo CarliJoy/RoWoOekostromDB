@@ -531,6 +531,7 @@ class UmfrageVersendung2024Admin(AnbieterAdmin):
     list_display = (
         "obj_id",
         "name",
+        "umfrage",
         "german_wide",
         "has_mutter",
         "has_sells_from",
@@ -617,6 +618,10 @@ class UmfrageVersendung2024Admin(AnbieterAdmin):
             f"Finished sending: {already_sent=} {sent=} {retried=} {failed=}",
             level="info",
         )
+
+    def umfrage(self, obj: UmfrageVersendung2024) -> str:
+        url = obj.survey_access.get_absolute_url()
+        return format_html("<a href='{url}'>Umfrage</a>", url=url)
 
     def get_fieldsets(
         self,
