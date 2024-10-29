@@ -790,7 +790,7 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
             "<li>Leistung</li>"
             "<li>Standort</li>"
             "<li>Datum Inbetriebnahme,</li>"
-            "<li>wie viel KWh Sie von der Anlage bezogen haben</li>"
+            "<li>wie viel MWh Sie von der Anlage bezogen haben</li>"
             "<li>selbst initiiert/gefördert?, </li>"
             "<li>Stromerzeugungs-Anlagen-Kennzeichnung der BeNetzA.</li>"
             "</ul>"
@@ -937,10 +937,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         verbose_name="Anzahl gewerblicher Kund*innen",
         help_text="Wie viele gewerbliche Kund*innen versorgen Sie zur Zeit?",
     )
-    total_kwh_sold_2023 = IntegerField(
+    total_mwh_sold_2023 = IntegerField(
         verbose_name="Verkaufter Strom in 2023",
-        unit="kWh",
-        help_text="Wie viele Kilowattstunden Strom hat Ihr Unternehmen im Jahr 2023 verkauft?",
+        unit="MWh",
+        help_text="Wie viele Megawattstunden Strom hat Ihr Unternehmen im Jahr 2023 verkauft?",
     )
 
     class Meta:
