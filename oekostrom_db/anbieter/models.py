@@ -342,7 +342,10 @@ class Anbieter(AnbieterBase):
             obj = AnbieterName.objects.get(name=self.name)
         except AnbieterName.DoesNotExist:
             return
-        if obj.anbieter != self:
+        anbieter: Anbieter = self
+        if isinstance(self, UmfrageVersendung2024):
+            anbieter = self.anbieter
+        if obj.anbieter != anbieter:
             raise ValidationError(
                 f"{self.name} ist bereits für {obj.anbieter} in Benutzung."
             )
