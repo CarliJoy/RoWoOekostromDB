@@ -10,6 +10,7 @@ from django.contrib import admin
 from django.contrib.admin.utils import unquote
 from django.contrib.admin.widgets import AutocompleteSelect
 from django.core.mail import send_mail
+from django.db.models import QuerySet
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils import timezone
@@ -534,6 +535,8 @@ class UmfrageVersendung2024Admin(AnbieterAdmin):
         "obj_id",
         "name",
         "umfrage",
+        "filled",
+        "revision",
         "german_wide",
         "has_mutter",
         "has_sells_from",
@@ -621,9 +624,32 @@ class UmfrageVersendung2024Admin(AnbieterAdmin):
             level="info",
         )
 
+    @admin.display(ordering="survey_access__survey___fill_status")
+    def filled(self, obj: UmfrageVersendung2024) -> str:
+        return f"{obj.survey_access.survey._fill_status} %"
+
+    @admin.display(description="Rev", ordering="survey_access__current_revision")
+    def revision(self, obj: UmfrageVersendung2024) -> str:
+        return str(obj.survey_access.current_revision)
+
+    def get_queryset(self, request: HttpRequest) -> QuerySet:
+        qs = super().get_queryset(request)
+        return qs.select_related("survey_access").select_related(
+            "survey_access__survey"
+        )
+
     def umfrage(self, obj: UmfrageVersendung2024) -> str:
         url = obj.survey_access.get_absolute_url()
         return format_html("<a href='{url}'>Umfrage</a>", url=url)
+
+    def get_readonly_fields(
+        self,
+        request: HttpRequest,  # noqa: ARG002
+        obj: UmfrageVersendung2024 = None,  # noqa: ARG002
+    ) -> tuple[str, ...]:
+        orig = list(AnbieterAdmin.readonly_fields)
+        orig.extend(["filled", "revision"])
+        return tuple(orig)
 
     def get_fieldsets(
         self,

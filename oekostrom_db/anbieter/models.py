@@ -4,6 +4,7 @@ from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import models
+from django.db.models import DecimalField
 from django.db.models.base import ModelBase
 from django.db.models.functions import Now
 from django.urls import reverse
@@ -439,6 +440,7 @@ class UmfrageVersendung2024(Anbieter):
     mail_details = models.TextField(help_text="i.e. Fehlermeldung aus Mail Versand")
 
     class Meta:
+        verbose_name = "Umfrage Mailversand Anbieter"
         verbose_name_plural = "Umfrage: Mailversand"
 
 
@@ -946,18 +948,46 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         help_text="Wie viele Megawattstunden Strom hat Ihr Unternehmen im Jahr 2023 verkauft?",
     )
 
+    _fill_status = DecimalField(
+        verbose_name="Filled",
+        help_text="Percentage of field",
+        db_column="filled",
+        max_digits=6,
+        decimal_places=1,
+    )
+
     class Meta:
         unique_together = ["anbieter", "revision"]
         verbose_name = "Umfrage Revision"
         verbose_name_plural = "Umfrage: Revisionen"
 
     def __str__(self) -> str:
-        # TODO Edit with Anbieter Name
         return f"Umfrage {self.anbieter.name}"
+
+    def save(self, *args, **kwargs):
+        self._fill_status = self.get_fill_status()
+        super().save(*args, **kwargs)
 
     def get_absolute_url(self) -> str:
         url = SurveyAccess.objects.get(anbieter=self.anbieter).get_absolute_url()
         return f"{url}&rev={self.revision}"
+
+    def get_fill_status(self) -> float:
+        """
+        Percent of fields filled
+        """
+        fields = {f for f in self.__dict__ if not f.startswith("_")}
+        fields -= {
+            "id",
+            "created",
+            "anbieter_id",
+            "revision",
+            "name",
+            "mail",
+            "homepage",
+        }
+        filled = sum(bool(getattr(self, f)) for f in fields)
+        return filled / len(fields) * 100
 
 
 class SurveyAccess(models.Model):
