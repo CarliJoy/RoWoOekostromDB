@@ -214,7 +214,7 @@ class AnbieterNameAdmin(admin.ModelAdmin):
         return False
 
 
-class FriendshipInline(admin.TabularInline):
+class AnbieterNameInline(admin.TabularInline):
     model = AnbieterName
     extra = 1
     fields = ("name",)
@@ -224,6 +224,36 @@ class FriendshipInline(admin.TabularInline):
         return False
 
     def has_delete_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+
+class SurveyAccessInline(admin.StackedInline):
+    model = SurveyAccess
+    extra = 0
+    fields = (
+        "code",
+        "current_revision",
+        "changed",
+        "access_count",
+        "last_access",
+        "fill_status",
+    )
+    verbose_name_plural = "Umfrage Status"
+    can_delete = False
+
+    def get_readonly_fields(self, request, obj=None):  # noqa ARG002
+        return self.fields
+
+    def fill_status(self, obj: SurveyAccess) -> str:
+        return f"{obj.survey._fill_status} %"
+
+    def has_change_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+    def has_delete_permission(self, request, obj=None):  # noqa ARG002
+        return False
+
+    def has_add_permission(self, request, obj=None):  # noqa ARG002
         return False
 
 
@@ -290,7 +320,7 @@ class AnbieterAdmin(admin.ModelAdmin):
 
     change_list_template = "admin/rowo_changelist.html"
 
-    inlines = (FriendshipInline,)
+    inlines = (AnbieterNameInline,)
     list_per_page = 1500
     ordering = ("name",)
 
@@ -557,6 +587,8 @@ class UmfrageVersendung2024Admin(AnbieterAdmin):
         "unabhaengigkeit",
         "money_for_ee_only",
     ]
+
+    inlines = [AnbieterNameInline, SurveyAccessInline]
 
     @admin.action(description="Sende Mail")
     def send_survey_email(self, request: HttpRequest, queryset):
