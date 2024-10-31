@@ -13,7 +13,14 @@ from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.views.generic.edit import UpdateView
 
-from .layouts import LayoutElement, PercentChecker, State
+from .field_helper import get_fill_status
+from .layouts import (
+    Alert,
+    LayoutElement,
+    PercentChecker,
+    Section,
+    State,
+)
 from .models import Anbieter, CompanySurvey2024, SurveyAccess
 
 if TYPE_CHECKING:
@@ -31,47 +38,105 @@ def startpage(request: HttpRequest) -> HttpResponse:
     return render(request, "anbieter/startpage.html", context)
 
 
-def gen_survey_helper(
+def render_section(name: str) -> str:
+    return f"<small style='text-transform: uppercase'>{name}</small>"
+
+
+class FormHelperExpanded(FormHelper):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.field_to_section: dict[str, str] = {}
+        self.field_to_name: dict[str, str] = {}
+
+    def get_field_name(self, name: str) -> str:
+        section = ""
+        if name in self.field_to_section:
+            section = f"{render_section(self.field_to_section[name])} - "
+        desc = self.field_to_name.get(name, name)
+        return f'<a href="#div_id_{name}">{section}{desc}</a>'
+
+    def gen_error_list(self, error_list: dict[str | None, list[str] | str]) -> str:
+        result = '<ul class="errorlist">'
+        for key, values in error_list.items():
+            if isinstance(values, str):
+                values = [values]  # noqa: PLW2901
+
+            if key:
+                result = (
+                    f"{result}<li>{self.get_field_name(key)}:\n<ul class='errorlist'>"
+                )
+
+            for value in values:
+                result = f"{result}<li>{value}</li>"
+
+            if key:
+                result = f"{result}</ul></li>"
+        return SafeString(result)
+
+
+def gen_survey_helper(  # noqa: PLR0912
     form: ModelForm,  # noqa: ARG001
     state: State,
     add_save_button: bool,
 ) -> FormHelper:
-    helper = FormHelper()
+    helper = FormHelperExpanded()
     helper.form_group_wrapper_class = "form-group"
     helper.form_class = "from form-horizontal"
     helper.field_class = "col-sm-6"
     helper.label_class = "col-sm-4"
-    layout_list = []
-
-    if state in CompanySurvey2024.state_labels:
-        layout_list.append(CompanySurvey2024.state_labels[state])
+    field_list = []
 
     if form.is_bound:
         data = form.cleaned_data
     else:
         data = form.initial
 
-    checks_okay = True
+    checks_failed: list[tuple[str, str]] = []
+    section = ""
+    section_id = ""
     for field_name in CompanySurvey2024._field_order:
         field = getattr(CompanySurvey2024, field_name)
         if isinstance(field, PercentChecker):
             layout, check_okay = field.check(data)
-            layout_list.append(layout)
-            checks_okay = checks_okay and check_okay
+            field_list.append(layout)
+            if not check_okay:
+                checks_failed.append((section, section_id))
         elif isinstance(field, LayoutElement):
-            layout_list.append(field)
+            if isinstance(field, Section):
+                section = field.name
+                section_id = field_name
+            field.field_name = field_name
+            field_list.append(field)
         else:
             if isinstance(field, DeferredAttribute):
                 field: Field = field.field
+            if getattr(field, "name", False):
+                helper.field_to_section[field.name] = section
+                helper.field_to_name[field.name] = field.verbose_name
             if hasattr(field, "bootstrap_field"):
-                layout_list.append(field.bootstrap_field(field_name))
+                field_list.append(field.bootstrap_field(field_name))
             elif getattr(field, "editable", False):
-                layout_list.append(field_name)
+                field_list.append(field_name)
     if add_save_button:
-        layout_list.append(Row(Submit("Speichern", "Speichern", css_class="mb-5 mt-3")))
-    if not checks_okay:
-        layout_list.insert(1, CompanySurvey2024.state_labels[State.saved_with_warning])
-    helper.add_layout(Layout(*layout_list))
+        field_list.append(Row(Submit("Speichern", "Speichern", css_class="mb-5 mt-3")))
+
+    alerts: list[Alert] = []
+    if state in CompanySurvey2024.state_labels:
+        alert_gen = CompanySurvey2024.state_labels[state]
+        if form.errors:
+            alerts.append(alert_gen(helper.gen_error_list(form.errors)))
+        else:
+            alerts.append(alert_gen())
+
+    if checks_failed:
+        alert_gen = CompanySurvey2024.state_labels[State.saved_with_warning]
+        extra_content = "".join(
+            f"<li><a href='#id-section-{field_id}'>{render_section(name)}</a></li>"
+            for name, field_id in checks_failed
+        )
+        extra_content = f'<ul class="errorlist">{extra_content}</ul>'
+        alerts.append(alert_gen(extra_content))
+    helper.add_layout(Layout(*alerts, *field_list))
     return helper
 
 
@@ -83,6 +148,7 @@ class RevisionModelForm(ModelForm):
 
     def clean(self) -> dict[str, Any]:
         data = super().clean() or self.cleaned_data
+        data["_fill_status"] = get_fill_status(data)
         if self.is_bound:
             if data.get("revision") != self.current_revision:
                 self.add_error(
@@ -96,6 +162,7 @@ class RevisionModelForm(ModelForm):
                         f"erneut um fortzufahren."
                     ),
                 )
+        return data
 
 
 class SurveyView(UpdateView):
@@ -158,6 +225,8 @@ class SurveyView(UpdateView):
                 else:
                     self.state = State.unchanged
             else:
+                print(repr(form.errors))
+                print(form.errors)
                 self.state = State.error
         form.helper = gen_survey_helper(form, self.state, add_save_button)
         return form

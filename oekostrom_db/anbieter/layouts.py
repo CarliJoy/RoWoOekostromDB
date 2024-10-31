@@ -2,11 +2,17 @@ from enum import StrEnum
 from typing import Literal
 
 from crispy_forms.layout import HTML
+from crispy_forms.utils import TEMPLATE_PACK
+from django.utils.safestring import SafeString
 
 
 class LayoutElement(HTML):
     def __init__(self) -> None:
+        self.field_name: str = ""
         super().__init__(self.__html__())
+
+    def render(self, form, context, template_pack=TEMPLATE_PACK, **kwargs):  # noqa: ARG002
+        return SafeString(self.__html__())
 
     def __html__(self) -> str:
         raise NotImplementedError()
@@ -23,7 +29,7 @@ class Header(LayoutElement):
         super().__init__()
 
     def __html__(self) -> str:
-        return f"<h2 class='kampagne-full-forderung-headline'>{self.name}</h2>"
+        return f"<h2 id='id-header-{self.field_name}' class='kampagne-full-forderung-headline'>{self.name}</h2>"
 
 
 class Label(LayoutElement):
@@ -44,7 +50,7 @@ class Section(LayoutElement):
     def __html__(self) -> str:
         desc = ""
         if self.description:
-            desc = f"<div class='forderung-text'>{self.description}</div>"
+            desc = f"<div id='id-section-{self.field_name}' class='forderung-text'>{self.description}</div>"
         return (
             f"<div class='kampagne-full-forderung-wrapper mobile-padding-1 mb-3'>"
             f"<div class='forderung-nummer'><span>?</span></div>"
@@ -56,16 +62,26 @@ AlertType = Literal["primary", "secondary", "success", "danger", "warning", "inf
 
 
 class Alert(LayoutElement):
-    def __init__(self, type_: AlertType, content: str) -> None:
+    def __init__(self, type_: AlertType, content: str, extra_content: str = "") -> None:
         self.type = type_
         self.content = content
+        self.extra_content = extra_content
         super().__init__()
 
     def __html__(self) -> str:
         return (
             f'<div class="alert alert-{self.type} mt-3" role="alert">'
-            f"{self.content}</div>"
+            f"{self.content}{self.extra_content}</div>"
         )
+
+
+class AlertBuilder:
+    def __init__(self, type_: AlertType, content: str) -> None:
+        self.type = type_
+        self.content = content
+
+    def __call__(self, extra_content: str = "") -> Alert:
+        return Alert(self.type, self.content, extra_content)
 
 
 class State(StrEnum):
@@ -112,4 +128,4 @@ class PercentChecker:
         ), False
 
 
-class StateLabels(dict[State, Alert]): ...
+class StateLabels(dict[State, AlertBuilder]): ...

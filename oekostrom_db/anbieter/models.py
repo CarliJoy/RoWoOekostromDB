@@ -14,7 +14,7 @@ from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 from django.utils.text import slugify
 
-from .field_helper import generate_unique_code, upload_to_power_plants
+from .field_helper import generate_unique_code, get_fill_status, upload_to_power_plants
 from .fields import (
     CharField,
     FileField,
@@ -26,7 +26,15 @@ from .fields import (
     YesNoField,
     is_percentage,
 )
-from .layouts import Alert, Header, Label, PercentChecker, Section, State, StateLabels
+from .layouts import (
+    AlertBuilder,
+    Header,
+    Label,
+    PercentChecker,
+    Section,
+    State,
+    StateLabels,
+)
 
 
 class AnbieterBase(models.Model):
@@ -508,21 +516,23 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
 
     state_labels = StateLabels(
         {
-            State.start: Alert(
+            State.start: AlertBuilder(
                 "info",
                 "Bitte vergessen Sie nicht am Ende zu Speichern. <br />"
                 "Sie können dies auch mit Zwischenständen tun.",
             ),
-            State.saved_with_warning: Alert(
+            State.saved_with_warning: AlertBuilder(
                 "warning",
                 "Bitte überprüfen Sie ihre Daten. Einige schein logische Fehler zu enthalten.",
             ),
-            State.saved: Alert("success", "Erfolgreich gespeichert."),
-            State.unchanged: Alert("info", "Nicht gespeichert, da keine Änderungen."),
-            State.error: Alert(
+            State.saved: AlertBuilder("success", "Erfolgreich gespeichert."),
+            State.unchanged: AlertBuilder(
+                "info", "Nicht gespeichert, da keine Änderungen."
+            ),
+            State.error: AlertBuilder(
                 "danger", "Konnte nicht speichern, Eingabefehler gefunden."
             ),
-            State.view_old: Alert("warning", "Das ist eine alte Revision!"),
+            State.view_old: AlertBuilder("warning", "Das ist eine alte Revision!"),
         }
     )
 
@@ -954,6 +964,7 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         db_column="filled",
         max_digits=6,
         decimal_places=1,
+        editable=False,
     )
 
     class Meta:
@@ -976,18 +987,7 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         """
         Percent of fields filled
         """
-        fields = {f for f in self.__dict__ if not f.startswith("_")}
-        fields -= {
-            "id",
-            "created",
-            "anbieter_id",
-            "revision",
-            "name",
-            "mail",
-            "homepage",
-        }
-        filled = sum(bool(getattr(self, f)) for f in fields)
-        return filled / len(fields) * 100
+        return get_fill_status(self.__dict__)
 
 
 class SurveyAccess(models.Model):

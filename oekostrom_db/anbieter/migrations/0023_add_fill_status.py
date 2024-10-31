@@ -2,22 +2,13 @@
 
 from django.db import migrations, models
 
+from anbieter.field_helper import get_fill_status
+
 
 def calculate_fill_status(apps, schema_editor):  # noqa: ARG001
     CompanySurvey2024 = apps.get_model("anbieter", "CompanySurvey2024")
     for obj in CompanySurvey2024.objects.all():
-        fields = {f for f in obj.__dict__ if not f.startswith("_")}
-        fields -= {
-            "id",
-            "created",
-            "anbieter_id",
-            "revision",
-            "name",
-            "mail",
-            "homepage",
-        }
-        filled = sum(bool(getattr(obj, f)) for f in fields)
-        obj._fill_status = filled / len(fields) * 100
+        obj._fill_status = get_fill_status(obj.__dict__)
         obj.save()
 
 
@@ -37,6 +28,7 @@ class Migration(migrations.Migration):
                 help_text="Percentage of field",
                 max_digits=6,
                 verbose_name="Filled",
+                editable=False,
             ),
             preserve_default=False,
         ),
