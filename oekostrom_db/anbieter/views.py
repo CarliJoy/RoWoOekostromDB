@@ -74,7 +74,7 @@ class FormHelperExpanded(FormHelper):
         return SafeString(result)
 
 
-def gen_survey_helper(  # noqa: PLR0912
+def gen_survey_helper(  # noqa: PLR0912, PLR0915
     form: ModelForm,  # noqa: ARG001
     state: State,
     add_save_button: bool,
@@ -84,6 +84,7 @@ def gen_survey_helper(  # noqa: PLR0912
     helper.form_class = "from form-horizontal"
     helper.field_class = "col-sm-6"
     helper.label_class = "col-sm-4"
+    helper.form_action = "#content-start"
     field_list = []
 
     if form.is_bound:
