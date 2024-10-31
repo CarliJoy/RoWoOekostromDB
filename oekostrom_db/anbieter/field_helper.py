@@ -19,6 +19,10 @@ def upload_to_power_plants(instance: "CompanySurvey2024", filename: str) -> str:
     return f"{code}/{revision}/{filename}"
 
 
+def is_empty(val: Any) -> bool:
+    return val is None or str(val).strip() == ""
+
+
 def get_fill_status(values: dict[str, Any]) -> float:
     fields = {f for f in values if not f.startswith("_")}
     fields -= {
@@ -30,5 +34,5 @@ def get_fill_status(values: dict[str, Any]) -> float:
         "mail",
         "homepage",
     }
-    filled = sum(bool(values.get(f)) for f in fields)
-    return filled / len(fields) * 100
+    missing = {f for f in fields if is_empty(values.get(f, None))}
+    return (len(fields) - len(missing)) / len(fields) * 100
