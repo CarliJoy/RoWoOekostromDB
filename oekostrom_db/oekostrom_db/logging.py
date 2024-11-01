@@ -1,4 +1,4 @@
-from email.mime.text import MIMEText
+from email.message import Message
 
 import gnupg
 from django.conf import settings
@@ -14,7 +14,9 @@ class EmailMultiAlternativesEncrypted(EmailMultiAlternatives):
 
     def _create_message(self, msg: SafeMIMEText):
         # Step 1: Create the inner message
-        inner_msg = super()._create_message(msg)  # Generates the fully str
+        inner_msg = super()._create_message(
+            msg
+        )  # Generates the fully structured inner message
 
         # Encrypt the inner message content
         encrypted_data = self.gpg.encrypt(
@@ -24,22 +26,23 @@ class EmailMultiAlternativesEncrypted(EmailMultiAlternatives):
             raise Exception("Failed to encrypt email content")
 
         # Step 2: Create the outer PGP/MIME structure
-        encoding = self.encoding or settings.DEFAULT_CHARSET
-        outer_msg = SafeMIMEMultipart(
-            self.body, "encrypted", encoding, protocol="application/pgp-encrypted"
-        )
+        outer_msg = SafeMIMEMultipart("encrypted")
 
         # PGP control part
-        control_part = MIMEText("Version: 1", "pgp-encrypted")
+        control_part = Message()
         control_part.add_header("Content-Type", "application/pgp-encrypted")
         control_part.add_header("Content-Transfer-Encoding", "7bit")
+        control_part.attach("Version: 1")
         outer_msg.attach(control_part)
 
         # Encrypted data part
-        encrypted_part = MIMEText(str(encrypted_data), "octet-stream")
+        encrypted_part = Message()
+        encrypted_part.add_header("Content-Type", "application/octet-stream")
         encrypted_part.add_header("Content-Disposition", 'inline; filename="msg.asc"')
         encrypted_part.add_header("Content-Transfer-Encoding", "7bit")
+        encrypted_part.attach(str(encrypted_data))
         outer_msg.attach(encrypted_part)
+
         return outer_msg
 
 
