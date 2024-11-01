@@ -291,3 +291,4 @@ EMAIL_USE_TLS = to_bool(
 EMAIL_HOST_USER = os.environ.get("EMAIL_USER")  # Your email username
 EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_PASSWORD")  # Your email password
 DEFAULT_FROM_EMAIL = "oekostrom@robinwood.de"  # Default from email address
+SERVER_EMAIL = DEFAULT_FROM_EMAIL

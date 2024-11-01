@@ -14,9 +14,7 @@ class EmailMultiAlternativesEncrypted(EmailMultiAlternatives):
 
     def _create_message(self, msg: SafeMIMEText):
         # Step 1: Create the inner message
-        inner_msg = super()._create_message(
-            msg
-        )  # Generates the fully structured inner message
+        inner_msg = super()._create_message(msg)
 
         # Encrypt the inner message content
         encrypted_data = self.gpg.encrypt(

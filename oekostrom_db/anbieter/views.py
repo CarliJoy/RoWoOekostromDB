@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, NoReturn
 
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Submit
@@ -12,8 +12,6 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.views.generic.edit import UpdateView
-
-from oekostrom_db.logging import GPGAdminEmailHandler
 
 from .field_helper import get_fill_status
 from .layouts import (
@@ -40,10 +38,8 @@ def startpage(request: HttpRequest) -> HttpResponse:
     return render(request, "anbieter/startpage.html", context)
 
 
-def fail(request: HttpRequest) -> HttpResponse:  # noqa: ARG001
-    h = GPGAdminEmailHandler(recipient_key_id="A6C26DB8F771FC68")
-    h.send_mail("Hello World", "Hello World", "<b>Hello</b> World")
-    return HttpResponse("Ok")
+def fail(request: HttpRequest) -> NoReturn:  # noqa: ARG001
+    raise RuntimeError("Expected Error")
 
 
 def render_section(name: str) -> str:
