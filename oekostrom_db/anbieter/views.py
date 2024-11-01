@@ -13,6 +13,8 @@ from django.utils import timezone
 from django.utils.safestring import SafeString
 from django.views.generic.edit import UpdateView
 
+from oekostrom_db.logging import GPGAdminEmailHandler
+
 from .field_helper import get_fill_status
 from .layouts import (
     Alert,
@@ -36,6 +38,12 @@ def startpage(request: HttpRequest) -> HttpResponse:
     }
 
     return render(request, "anbieter/startpage.html", context)
+
+
+def fail(request: HttpRequest) -> HttpResponse:  # noqa: ARG001
+    h = GPGAdminEmailHandler(recipient_key_id="A6C26DB8F771FC68")
+    h.send_mail("Hello World", "Hello World", "<b>Hello</b> World")
+    return HttpResponse("Ok")
 
 
 def render_section(name: str) -> str:
@@ -226,8 +234,6 @@ class SurveyView(UpdateView):
                 else:
                     self.state = State.unchanged
             else:
-                print(repr(form.errors))
-                print(form.errors)
                 self.state = State.error
         form.helper = gen_survey_helper(form, self.state, add_save_button)
         return form
@@ -259,9 +265,16 @@ class SurveyView(UpdateView):
             self.survey_access.increment_access_count()
         return self.survey_access.survey
 
+    def form_invalid(self, form: ModelForm) -> HttpResponse:
+        logger.info(
+            f"Tried to save invalid form {self.object.log_info} {repr(form.errors)=}"
+        )
+        return super().form_invalid(form)
+
     def form_valid(self, form: ModelForm) -> HttpResponse:
         if not form.has_changed():
             # Nothing has changed, so keep revision as it is
+            logger.info(f"Saved unchanged {self.object.log_info}")
             return self.render_to_response(self.get_context_data(form=form))
         # Increment revision and save a new CompanySurvey2024 instance
         new_revision = self.survey_access.current_revision + 1
@@ -285,4 +298,5 @@ class SurveyView(UpdateView):
         form = self.get_form()
         # Render the form with additional context "status": "saved"
         context = self.get_context_data(form=form)
+        logger.info(f"Saved new revision {self.object.log_info}")
         return self.render_to_response(context)

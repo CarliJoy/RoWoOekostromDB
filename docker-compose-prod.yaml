@@ -16,10 +16,16 @@ services:
       DJANGO_CSRF_TRUSTED_ORIGINS: "http://127.0.0.1 http://127.0.0.1:8000 https://rowo.kound.de https://stromdb.robinwood.de"
       MEDIA_ROOT: "/home/app/uploads"
       MEDIA_URL: "/f"
+      DJANGO_LOG_FILE: "/home/app/logs/django.log"
+      DJANGO_ANBIETER_LOG_FILE: "/home/app/logs/anbieter.log"
+      DJANGO_LOG_MAIL: "1"
     volumes:
       - type: bind
         source: ./uploads
         target: /home/app/uploads
+      - type: bind
+        source: ./logs
+        target: /home/app/logs
     depends_on:
       - db
     ports:
@@ -34,7 +40,7 @@ services:
         GID: ${GID:-2000}
     container_name: rowo_oekostrom_db_nginx_prod
     environment:
-      NGINX_HOST: "foobar.com"
+      NGINX_HOST: "stromdb.robinwood.de"
       NGINX_PORT: "8001"
       NGINX_TARGET: "prod:8000"
       MEDIA_ROOT: "/home/app/uploads"

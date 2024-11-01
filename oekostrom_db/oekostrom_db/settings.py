@@ -16,6 +16,8 @@ from pathlib import Path
 
 from django.http import HttpRequest, HttpResponseForbidden
 
+ADMINS = [("Carli", "kound@posteo.de")]
+EMAIL_SUBJECT_PREFIX = "[Ökostromdb] "
 TRUE_REPRESENTATIONS = {"true", "y", "yes", "on"}
 
 
@@ -195,13 +197,21 @@ STATICFILES_DIRS = [
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
+_handlers = ["console"]
+
+if os.environ.get("DJANGO_LOG_MAIL"):
+    _handlers.append("email")
+
+if os.environ.get("DJANGO_LOG_FILE"):
+    _handlers.append("file")
+
 _info_to_console = {
-    "handlers": ["console"],
+    "handlers": _handlers,
     "level": "INFO",
     "propagate": False,
 }
 _debug_to_console_on_debug = {
-    "handlers": ["console"],
+    "handlers": _handlers,
     "level": "DEBUG" if DEBUG else "INFO",
     "propagate": False,
 }
@@ -226,7 +236,7 @@ LOGGING = {
         },
     },
     "root": {
-        "handlers": ["console"],
+        "handlers": _handlers,
         "level": "INFO",
     },
     "loggers": {
@@ -241,6 +251,29 @@ LOGGING = {
         "django.db.backends": _info_to_console,
     },
 }
+if os.environ.get("DJANGO_LOG_MAIL"):
+    LOGGING["handlers"]["email"] = {
+        "level": "ERROR",
+        "class": "oekostrom_db.logging.GPGAdminEmailHandler",
+        "recipient_key_id": "A6C26DB8F771FC68",
+        "include_html": True,  # Enables HTML content in emails
+    }
+if os.environ.get("DJANGO_LOG_FILE"):
+    LOGGING["handlers"]["file"] = {
+        "level": "INFO",
+        "class": "logging.FileHandler",
+        "filename": os.environ.get("DJANGO_LOG_FILE"),
+        "formatter": "verbose",
+    }
+if os.environ.get("DJANGO_ANBIETER_LOG_FILE"):
+    LOGGING["handlers"]["anbieter"] = {
+        "level": "INFO",
+        "class": "logging.FileHandler",
+        "filename": os.environ.get("DJANGO_LOG_FILE"),
+        "formatter": "verbose",
+    }
+    LOGGING["loggers"]["anbieter"]["handlers"].append("anbieter")
+
 SESSION_COOKIE_AGE = 3600 * 24 * 30  # a month
 SESSION_SAVE_EVERY_REQUEST = True
 

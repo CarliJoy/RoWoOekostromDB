@@ -989,6 +989,10 @@ class CompanySurvey2024(models.Model, metaclass=KeepOrderModelBase):
         """
         return get_fill_status(self.__dict__)
 
+    @property
+    def log_info(self) -> str:
+        return f"anbieter={self.anbieter.name} rev={self.revision} fill_state={self._fill_status:.1f}%"
+
 
 class SurveyAccess(models.Model):
     anbieter = models.OneToOneField(

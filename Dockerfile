@@ -11,6 +11,9 @@ ENV PYTHONUNBUFFERED 1
 RUN set -ex; \
     apt-get update; \
     apt-get install -y --no-install-recommends \
+      gpg \
+      gpg-agent \
+      dirmngr \
       libpq5; \
     rm -rf /var/lib/apt/lists/*
 
@@ -62,14 +65,20 @@ FROM base AS app
 ENV VIRTUAL_ENV="/home/app/venv" \
     PATH="/home/app/venv/bin:$PATH"
 
+COPY log_key.asc /home/app
 COPY entrypoint.sh /home/app/entrypoint.sh
 COPY oekostrom-recherche/scraped_data /home/app/oekostrom-recherche/scraped_data
 
 RUN set -ex; \
+    mkdir -p /home/app/.gnupg; \
+    chmod 700 /home/app/.gnupg; \
+    echo "use-agent: no\n" >> /home/app/.gnupg/gpg.conf; \
     chown -R app:app /home/app; \
     chmod a+rx /home/app/entrypoint.sh
 
 USER app
+
+RUN gpg --batch --import /home/app/log_key.asc
 
 # Copy the virtual environment from the builder.
 COPY --from=builder /home/app/venv /home/app/venv
