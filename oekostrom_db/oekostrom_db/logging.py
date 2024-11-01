@@ -32,7 +32,7 @@ class EmailMultiAlternativesEncrypted(EmailMultiAlternatives):
         control_part = Message()
         control_part.add_header("Content-Type", "application/pgp-encrypted")
         control_part.add_header("Content-Transfer-Encoding", "7bit")
-        control_part.attach("Version: 1")
+        control_part.set_payload("Version: 1")
         outer_msg.attach(control_part)
 
         # Encrypted data part
@@ -40,7 +40,7 @@ class EmailMultiAlternativesEncrypted(EmailMultiAlternatives):
         encrypted_part.add_header("Content-Type", "application/octet-stream")
         encrypted_part.add_header("Content-Disposition", 'inline; filename="msg.asc"')
         encrypted_part.add_header("Content-Transfer-Encoding", "7bit")
-        encrypted_part.attach(str(encrypted_data))
+        encrypted_part.set_payload(str(encrypted_data))
         outer_msg.attach(encrypted_part)
 
         return outer_msg
