@@ -11,6 +11,8 @@ from django.contrib.admin.utils import unquote
 from django.contrib.admin.widgets import AutocompleteSelect
 from django.core.mail import send_mail
 from django.db.models import QuerySet
+from django.db.models.fields import TextField
+from django.forms.widgets import Textarea
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
 from django.urls import path, reverse
 from django.utils import timezone
@@ -133,6 +135,10 @@ class TemplateAdmin(admin.ModelAdmin):
     list_display = ["name"]
 
     change_form_template = "admin/template_change_form.html"
+
+    formfield_overrides = {
+        TextField: {"widget": Textarea(attrs={"rows": 40, "style": "width: 100%"})},
+    }
 
     def has_delete_permission(self, request: HttpRequest, obj: Template | None = None):  # noqa ARG002
         return False
