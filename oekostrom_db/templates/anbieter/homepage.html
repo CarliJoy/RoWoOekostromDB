@@ -1,0 +1,69 @@
+{% if anbieter.has_parent %}
+  <p>
+    {{ anbieter }} ist eine Unterfirma von {{ anbieter.parent }} oder vermarktet dessen Strom. 
+    Die unten stehende Bewertung spiegelt daher die Bewertung von {{ anbieter.parent}} wieder.
+  </p>
+{% endif %}
+
+{% if anbieter.ist_empfohlen %}
+  <p class="okay">
+    ✅ {{ anbieter }} erfüllt alle Kriterien des RobinWood Ökotstrom Reports.
+  </p>
+{% else %}
+<p class="fail">
+   ❌ Der Anbieter {{ anbieter }} erfüllt mindestens eines der Kriterien des RobinWood Ökostrom Reports <strong>nicht</strong>
+   und kann daher <strong>nicht</strong> empfohlen werden:
+  <ul>
+      
+    {% if anbieter.nicht_nur_oekostrom %}
+    <li>
+      Der Anbieter hat einen Ökostromtarif, verkauft in anderen Tarifen aber auch Strom aus fossilen Energiequellen.
+    </li>    
+    {% endif %}
+  
+    {% if anbieter.nicht_unabhangig %}
+    <li>
+        Der Anbieter ist mit einem Unternehmen verflochten, 
+        das Kohle- oder Atomkraftwerke betreibt oder mit Strom aus diesen Quellen handelt.
+    </li>
+    {% endif %}
+  
+    {% if anbieter.nicht_zusaetzlich %}
+    <li>
+        Beim Anbieter besteht keine zusätzliche Förderung der Energiewende 
+        über einen festen Förderbeitrag oder den Bau von neuen Ökostromanlagen.
+    </li>
+    {% endif %}
+  
+    {% if anbieter.auch_kohle_oder_atom %}
+    <li>
+       Der Anbieter bezieht Strom aus Erzeugungsanlagen, 
+        die mit einem Kohle- oder Atomkonzern verflochten sind.
+    </li>
+    {% endif %}
+  
+    {% if anbieter.nur_umfrage_nicht_beantwortet %}
+    <li>
+        Der Anbieter verkauft in allen Tarifen ausschließlich Ökostrom. 
+        Es bestehen keine uns bekannten Verflechtungen zu einem Unternehmen, 
+         das Kohle- oder Atomkraftwerke betreibt oder mit Strom aus diesen Quellen handelt. 
+        Der Anbieter hat jedoch unsere weitergehenden Fragen zum Unternehmen und zum Stromeinkauf nicht beantwortet, 
+         daher ist nicht klar, 
+         ob alle Kriterien von ROBIN WOOD erfüllt sind.
+    </li>
+    {% endif %}
+  </ul>
+</p>
+{% endif %}
+
+
+{% if anbieter.homepage_notizen %}
+    <p>
+    Weitere Anmerkungen:
+    <ul>
+      {% for notiz in anbieter.homepage_notizen %}
+          <li>{{ notiz }}</li>
+      {% endfor %}
+    </ul>
+    </p>
+{% endif %}
