@@ -368,6 +368,28 @@ class Anbieter(AnbieterBase):
             "money_for_ee_only",
         )
 
+    @property
+    def nicht_nur_oekostrom(self) -> bool:
+        return self.parent.nur_oeko is False
+
+    @property
+    def nicht_unabhangig(self) -> bool:
+        return self.parent.unabhaengigkeit is False
+
+    @property
+    def nicht_zusaetzlich(self) -> bool:
+        return self.parent.zusaetzlichkeit is False
+
+    @property
+    def auch_kohle_oder_atom(self) -> bool:
+        return self.parent.money_for_ee_only is False
+
+    @property
+    def nur_umfrage_nicht_beantwortet(self) -> bool:
+        if self.parent.unerfuellte_kriterien:
+            return False
+        return not self.parent.survey_answered
+
     @classproperty
     def active_count(cls) -> int:
         return Anbieter.objects.filter(active=True).count()
@@ -385,13 +407,19 @@ class Anbieter(AnbieterBase):
         return self.parent != self
 
     @property
+    def unerfuellte_kriterien(self) -> bool:
+        for field in self.kriterien_fields:
+            if getattr(self, field) is False:
+                return True
+        return False
+
+    @property
     def ist_empfohlen(self) -> bool:
         # empfehle erstmal alles was nicht nicht empfohlen ist
         anbieter = self.parent
-        for field in self.kriterien_fields:
-            if getattr(anbieter, field) is False:
-                return False
-        return True
+        if not anbieter.survey_answered:
+            return False
+        return not anbieter.unerfuellte_kriterien
 
     def get_nicht_erfuellte_kriterien_iter(self) -> Iterable[str]:
         anbieter = self.parent
@@ -422,6 +450,12 @@ class Anbieter(AnbieterBase):
     @property
     def code_2024(self) -> str:
         return self.survey_access.code
+
+    @property
+    def survey_answered(self) -> bool | None:
+        if self.survey_access is None:
+            return None
+        return self.survey_access.current_revision > 1
 
 
 class UmfrageVersendung2024(Anbieter):

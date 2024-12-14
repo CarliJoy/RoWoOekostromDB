@@ -18,6 +18,7 @@ from django.utils.html import format_html
 from django.utils.safestring import SafeString, mark_safe
 from jinja2 import Template as JinjaTemplate
 
+from .filter import EmpfohlenFilter, SurveyStatusFilter
 from .models import (
     STATUS_CHOICES,
     Anbieter,
@@ -53,12 +54,15 @@ def get_homepage_export_data(
 ) -> list[dict[str, str | list[str]]]:
     data: dict[str, str | list[str]] = []
 
-    for obj in Anbieter.objects.filter(active=True).order_by("name"):
+    anbieter = Anbieter.objects.filter(active=True).order_by("name")
+    anbieter = anbieter.select_related("survey_access", "mutter", "sells_from")
+
+    for obj in anbieter:
         # Get related names from AnbieterNames
         related_names = obj.names.all().values_list("name", flat=True)
 
         # Render the Jinja2 template content using current Anbieter as context
-        context = {"obj": obj}
+        context = {"obj": obj, "anbieter": obj, "related_names": related_names}
         jinja_template = JinjaTemplate(template)
         try:
             rendered_content = jinja_template.render(context)
@@ -305,6 +309,8 @@ class AnbieterAdmin(admin.ModelAdmin):
         "additional",
         "independent",
         "no_bad_money",
+        "survey_answered",
+        "ist_empfohlen",
     )
     list_filter = [
         "active",
@@ -312,10 +318,13 @@ class AnbieterAdmin(admin.ModelAdmin):
         ("mutter", admin.EmptyFieldListFilter),
         ("sells_from", admin.EmptyFieldListFilter),
         "status",
+        ("begruendung_extern", admin.EmptyFieldListFilter),
         "nur_oeko",
         "zusaetzlichkeit",
         "unabhaengigkeit",
         "money_for_ee_only",
+        EmpfohlenFilter,
+        SurveyStatusFilter,
     ]
 
     change_list_template = "admin/rowo_changelist.html"
@@ -432,6 +441,31 @@ class AnbieterAdmin(admin.ModelAdmin):
     def no_bad_money(self, obj: Anbieter) -> bool:
         return obj.money_for_ee_only
 
+    @admin.display(description="📬", boolean=True)
+    def survey_answered(self, obj: Anbieter) -> bool:
+        return obj.survey_answered
+
+    @admin.display(description="Umfrage 2024 (📬)")
+    def survey_answered_field(self, obj: Anbieter) -> str:
+        if obj.survey_access is None:
+            return "Keine Umfrage versendet"
+        survey_access: SurveyAccess = obj.survey_access
+        if survey_access.current_revision > 1:
+            return format_html(
+                "📬 <a href='{url}' target='_blank'>Umfrage</a> zu {fill_status} beantwortet",
+                url=survey_access.get_absolute_url(),
+                fill_status=f"{survey_access.survey._fill_status:.1f}%",
+            )
+        return "📭 Umfrage nicht beantwortet"
+
+    @admin.display(description="👍", boolean=True)
+    def ist_empfohlen(self, obj: Anbieter) -> bool:
+        return obj.ist_empfohlen
+
+    @admin.display(description="Empfohlen 2024 (👍)", boolean=True)
+    def ist_empfohlen_field(self, obj: Anbieter) -> bool:
+        return obj.ist_empfohlen
+
     @admin.display(description="Status")
     def status_ro(self, obj: Anbieter) -> str:
         return STATUS_CHOICES.get(obj.status, f"{obj.status} - ?")
@@ -445,7 +479,7 @@ class AnbieterAdmin(admin.ModelAdmin):
                     Google Stromkennzeichnung</a>, <br />
             <a href="https://www.northdata.de/{name}", target="_blank">
                     North Data</a>, <br />
-            <a href="https://de.wikipedia.org/w/index.php?search={name}",target="_blank">
+            <a href="https://de.wikipedia.org/w/index.php?search={name}", target="_blank">
                     Wikipedia</a>, <br />
             """,
             name=obj.name,
@@ -469,6 +503,10 @@ class AnbieterAdmin(admin.ModelAdmin):
         "such_links",
         "last_updated",
         "created_at",
+        "survey_answered",
+        "ist_empfohlen",
+        "survey_answered_field",
+        "ist_empfohlen_field",
         "status_ro",
     )
 
@@ -523,6 +561,8 @@ class AnbieterAdmin(admin.ModelAdmin):
                     "zusaetzlichkeit",
                     "unabhaengigkeit",
                     "money_for_ee_only",
+                    "survey_answered_field",
+                    "ist_empfohlen_field",
                     "begruendung",
                     "begruendung_extern",
                 ]
