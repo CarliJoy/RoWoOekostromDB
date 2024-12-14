@@ -1,0 +1,12 @@
+{% extends "anbieter/survey.html" %}
+
+{% block content %}
+    {% for template_preview in template_previews %}
+      <p>
+           <h4>{{ template_preview.title }}</h4>
+           <div>{{ template_preview.content | safe }}</div>
+      </p>
+      <hr />
+    {% endfor %}
+    
+{% endblock %}

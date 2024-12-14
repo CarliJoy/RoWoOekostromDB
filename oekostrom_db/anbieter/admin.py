@@ -6,6 +6,7 @@ from typing import Any, Final
 from urllib.parse import urlparse
 
 from django import forms
+from django.conf import settings
 from django.contrib import admin
 from django.contrib.admin.utils import unquote
 from django.contrib.admin.widgets import AutocompleteSelect
@@ -14,6 +15,7 @@ from django.db.models import QuerySet
 from django.db.models.fields import TextField
 from django.forms.widgets import Textarea
 from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.html import format_html
@@ -52,14 +54,17 @@ class RenderException(Exception):
 
 
 def get_homepage_export_data(
-    template: str, include_pre: bool = False
+    template: str, include_pre: bool = False, qs=None
 ) -> list[dict[str, str | list[str]]]:
     data: dict[str, str | list[str]] = []
 
-    anbieter = Anbieter.objects.filter(active=True).order_by("name")
-    anbieter = anbieter.select_related("survey_access", "mutter", "sells_from")
+    if qs is None:
+        qs = Anbieter.objects.filter(active=True)
 
-    for obj in anbieter:
+    qs = qs.order_by("name")
+    qs = qs.select_related("survey_access", "mutter", "sells_from")
+
+    for obj in qs:
         # Get related names from AnbieterNames
         related_names = obj.names.all().values_list("name", flat=True)
 
@@ -343,7 +348,7 @@ class AnbieterAdmin(admin.ModelAdmin):
     form = AnbieterForm
     autocomplete_fields = autocomplete_fields
 
-    actions = ["init_survey_email"]
+    actions = ["init_survey_email", "homepage_preview"]
 
     # Add custom URL and buttons
     def get_urls(self):
@@ -381,7 +386,7 @@ class AnbieterAdmin(admin.ModelAdmin):
         return response
 
     @admin.action(description="Init Umfrageversendung")
-    def init_survey_email(self, request: HttpRequest, queryset):
+    def init_survey_email(self, request: HttpRequest, queryset) -> None:
         obj: Anbieter
         created = 0
         already_existed = 0
@@ -397,6 +402,27 @@ class AnbieterAdmin(admin.ModelAdmin):
                 already_existed += 1
         self.message_user(
             request, f"Umfrageversendungen initiiert {created=} {already_existed=}"
+        )
+
+    @admin.action(description="Homepage preview")
+    def homepage_preview(self, request: HttpRequest, queryset) -> HttpResponse:
+        context = {
+            "rowo_url": "/mirror" if settings.ROWO_MIRRORING else "/static",
+            "rowo_hp": "https://robinwood.de",
+            "teaser": "Ökostrom Render Preview",
+        }
+        try:
+            context["template_previews"] = get_homepage_export_data(
+                Template.objects.get(name=TemplateNames.HOMEPAGE_TEXT_EXPORT).template,
+                include_pre=False,
+                qs=queryset,
+            )
+        except RenderException as e:
+            self.message_user(request, message=str(e), level="error")
+            return None
+
+        return TemplateResponse(
+            request, "anbieter/preview.html", context, charset="UTF-8"
         )
 
     # Add the export button to the admin interface
