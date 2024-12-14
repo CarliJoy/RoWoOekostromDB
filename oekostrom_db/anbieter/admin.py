@@ -311,6 +311,7 @@ class AnbieterAdmin(admin.ModelAdmin):
         "status",
         "homepage_url",
         "mail",
+        "hp_text",
         "ee_only",
         "additional",
         "independent",
@@ -431,6 +432,14 @@ class AnbieterAdmin(admin.ModelAdmin):
     def has_sells_from(self, obj: Anbieter) -> bool:
         return bool(obj.sells_from)
 
+    @admin.display(description="ℹ️", ordering="begruendung_extern")
+    def hp_text(self, obj: Anbieter) -> str:
+        if not obj.begruendung_extern:
+            return "-"
+        return format_html(
+            "<span title='{title}'>ℹ️</span>", title=obj.begruendung_extern
+        )
+
     @admin.display(description="100% Öko", ordering="nur_oeko", boolean=True)
     def ee_only(self, obj: Anbieter) -> bool:
         return obj.nur_oeko
@@ -514,6 +523,7 @@ class AnbieterAdmin(admin.ModelAdmin):
         "survey_answered_field",
         "ist_empfohlen_field",
         "status_ro",
+        "hp_text",
     )
 
     fieldsets = [
