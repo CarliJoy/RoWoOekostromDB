@@ -1,3 +1,5 @@
+from typing import Literal
+
 from django.contrib.admin import SimpleListFilter
 from django.db.models import Q
 
@@ -42,12 +44,30 @@ class EmpfohlenFilter(SimpleListFilter):
 
     def queryset(self, request, queryset):  # noqa: ARG002
         """Filter the queryset based on the selected option."""
-        empfohlen = Q(
-            Q(survey_access__current_revision__gt=1)
-            & ~Q(nur_oeko=False)
-            & ~Q(unabhaengigkeit=False)
-            & ~Q(zusaetzlichkeit=False)
-            & ~Q(money_for_ee_only=False)
+
+        queryset = queryset.select_related("mutter", "sells_from")
+
+        def empfohlen_for(prefix_: Literal["mutter", "sells_from", "self"]) -> Q:
+            extra_q: dict[str, bool] = {}
+
+            if prefix_ == "self":
+                prefix = ""
+            else:
+                prefix = f"{prefix_}__"
+                extra_q = {f"{prefix_}__isnull": False}
+
+            return Q(
+                Q(**extra_q, **{f"{prefix}survey_access__current_revision__gt": 1})
+                & ~Q(**{f"{prefix}nur_oeko": False})
+                & ~Q(**{f"{prefix}unabhaengigkeit": False})
+                & ~Q(**{f"{prefix}zusaetzlichkeit": False})
+                & ~Q(**{f"{prefix}money_for_ee_only": False})
+            )
+
+        empfohlen = (
+            empfohlen_for("mutter")
+            | empfohlen_for("sells_from")
+            | empfohlen_for("self")
         )
 
         if self.value() == "ja":
