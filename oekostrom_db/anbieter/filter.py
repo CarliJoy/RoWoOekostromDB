@@ -44,10 +44,10 @@ class EmpfohlenFilter(SimpleListFilter):
         """Filter the queryset based on the selected option."""
         empfohlen = Q(
             Q(survey_access__current_revision__gt=1)
-            & Q(nur_oeko__is_not=False)
-            & Q(unabhaengigkeit__is_not=False)
-            & Q(zusaetzlichkeit__is_not=False)
-            & Q(money_for_ee_only__is_not=False)
+            & ~Q(nur_oeko=False)
+            & ~Q(unabhaengigkeit=False)
+            & ~Q(zusaetzlichkeit=False)
+            & ~Q(money_for_ee_only=False)
         )
 
         if self.value() == "ja":
