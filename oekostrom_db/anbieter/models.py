@@ -444,7 +444,7 @@ class Anbieter(AnbieterBase):
         if anbieter.begruendung_extern:
             result.append(f"{anbieter}: {anbieter.begruendung_extern}")
         if self.begruendung_extern:
-            result.append(f"{self}: {anbieter.begruendung_extern}")
+            result.append(f"{self}: {self.begruendung_extern}")
         return tuple(result)
 
     @property
